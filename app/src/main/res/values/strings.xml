@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">GENeral Chat</string>
+    <string name="mask_calc">Hesap Makinesi</string>
+    <string name="mask_weather">Hava Durumu</string>
+    <string name="mask_notes">Not Defteri</string>
+    <string name="mask_compass">Pusula</string>
+    <string name="mask_battery">Pil Durumu</string>
+    <string name="mask_calendar">Takvim</string>
+    <string name="mask_clock">Saat &amp; Alarm</string>
+    <string name="mask_stopwatch">Kronometre</string>
+    <string name="mask_dictionary">Sözlük</string>
+    <string name="mask_qr">QR Barkod</string>
+</resources>

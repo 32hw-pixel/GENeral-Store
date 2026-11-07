@@ -1,0 +1,6 @@
+{
+  "name": "GENeral Chat",
+  "description": "GENeral Chat v7.7.3 Pro: Siberpunk estetiği, 10 gizlilik maskelemesi, Kağıt Ekran (Paper Mode), panik butonu, tekerlekli dil seçici ve Gemini 3.8 Flash yapay zekâ operasyon merkezi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
