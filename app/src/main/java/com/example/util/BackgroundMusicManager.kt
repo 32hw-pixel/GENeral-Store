@@ -37,6 +37,9 @@ object BackgroundMusicManager {
     private val _customMusicTitle = MutableStateFlow<String>("Chill Cyber Ambient")
     val customMusicTitle: StateFlow<String> = _customMusicTitle.asStateFlow()
 
+    private var currentSpeed: Float = 1.0f
+    private var currentPitch: Float = 1.0f
+
     fun init(context: Context) {
         if (appContext != null) return
         appContext = context.applicationContext
@@ -44,9 +47,12 @@ object BackgroundMusicManager {
         playTrack(MusicTrack.CHILL_AMBIENT)
     }
 
-    fun playTrack(track: MusicTrack, uri: Uri? = null) {
+    fun playTrack(track: MusicTrack, uri: Uri? = null, speed: Float = 1.0f, pitch: Float = 1.0f) {
         val context = appContext ?: return
         try {
+            currentSpeed = speed
+            currentPitch = pitch
+
             mediaPlayer?.stop()
             mediaPlayer?.release()
             mediaPlayer = null
@@ -81,6 +87,17 @@ object BackgroundMusicManager {
             }
 
             player.prepare()
+
+            // Dynamic Pitch & Speed manipulation for distinctive audio signatures
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                try {
+                    val params = player.playbackParams
+                    params.speed = speed.coerceIn(0.5f, 2.0f)
+                    params.pitch = pitch.coerceIn(0.5f, 2.0f)
+                    player.playbackParams = params
+                } catch (_: Exception) {}
+            }
+
             val currentVol = _volume.value
             player.setVolume(currentVol, currentVol)
             player.start()
@@ -146,9 +163,13 @@ object BackgroundMusicManager {
         playTrack(MusicTrack.CUSTOM, uri)
     }
 
-    fun setCustomRoyaltyFreeTrack(title: String, isChill: Boolean) {
+    fun setCustomRoyaltyFreeTrack(title: String, isChill: Boolean, speed: Float = 1.0f, pitch: Float = 1.0f) {
         _customMusicTitle.value = title
-        playTrack(if (isChill) MusicTrack.CHILL_AMBIENT else MusicTrack.STABLE_BEAT)
+        playTrack(
+            track = if (isChill) MusicTrack.CHILL_AMBIENT else MusicTrack.STABLE_BEAT,
+            speed = speed,
+            pitch = pitch
+        )
     }
 
     fun stop() {

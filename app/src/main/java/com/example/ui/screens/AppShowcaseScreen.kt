@@ -1,11 +1,17 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,9 +23,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -276,6 +284,18 @@ private fun VideoShowcaseContent(
 ) {
     val scrollState = rememberScrollState()
 
+    // Holographic laser scanline animation
+    val infiniteTransition = rememberInfiniteTransition(label = "scanline_loop")
+    val laserY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "laser_y"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -283,30 +303,132 @@ private fun VideoShowcaseContent(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // High-Tech Cyber Tablet Frame (GENeral Pro Architecture)
+        // High-Tech Cyber Holographic Tablet Frame (GENeral Pro 1080p Architecture)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF0F0F0F))
-                .border(2.dp, CyberYellow.copy(alpha = 0.8f), RoundedCornerShape(20.dp))
-                .padding(12.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF141924), Color(0xFF090D14))
+                    )
+                )
+                .border(
+                    BorderStroke(
+                        2.dp,
+                        Brush.linearGradient(
+                            listOf(CyberYellow, NeonCyan, CyberYellow)
+                        )
+                    ),
+                    RoundedCornerShape(22.dp)
+                )
+                .padding(14.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Screen Glass Area
+                // Top HUD Status Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isPlaying) NeonGreen else NeonRed)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isPlaying) "CANLI SİBER DEMO // 120 FPS" else "DURAKLATILDI",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPlaying) NeonGreen else TextSecondary,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Text(
+                        text = "GEN-SYS-4K",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = NeonCyan,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Screen Glass Area with Laser Scanline and Cyber Corners
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .height(250.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color(0xFF1A1A1A), Color(0xFF0A0A0A))
+                                colors = listOf(Color(0xFF1B2332), Color(0xFF080D15))
                             )
                         )
-                        .border(1.dp, CyberCardBorder, RoundedCornerShape(14.dp)),
+                        .border(1.dp, CyberCardBorder, RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Sci-Fi Cyber Grid
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val gridStep = 40f
+                        var x = 0f
+                        while (x < size.width) {
+                            drawLine(
+                                color = Color(0xFF223554).copy(alpha = 0.25f),
+                                start = Offset(x, 0f),
+                                end = Offset(x, size.height),
+                                strokeWidth = 1f
+                            )
+                            x += gridStep
+                        }
+                        var y = 0f
+                        while (y < size.height) {
+                            drawLine(
+                                color = Color(0xFF223554).copy(alpha = 0.25f),
+                                start = Offset(0f, y),
+                                end = Offset(size.width, y),
+                                strokeWidth = 1f
+                            )
+                            y += gridStep
+                        }
+
+                        // Cyber HUD Corner Brackets
+                        val cornerLen = 20f
+                        val cornerStroke = 2.5f
+                        val cornerColor = CyberYellow.copy(alpha = 0.8f)
+
+                        // Top Left
+                        drawLine(cornerColor, Offset(10f, 10f), Offset(10f + cornerLen, 10f), cornerStroke)
+                        drawLine(cornerColor, Offset(10f, 10f), Offset(10f, 10f + cornerLen), cornerStroke)
+
+                        // Top Right
+                        drawLine(cornerColor, Offset(size.width - 10f, 10f), Offset(size.width - 10f - cornerLen, 10f), cornerStroke)
+                        drawLine(cornerColor, Offset(size.width - 10f, 10f), Offset(size.width - 10f, 10f + cornerLen), cornerStroke)
+
+                        // Bottom Left
+                        drawLine(cornerColor, Offset(10f, size.height - 10f), Offset(10f + cornerLen, size.height - 10f), cornerStroke)
+                        drawLine(cornerColor, Offset(10f, size.height - 10f), Offset(10f, size.height - 10f - cornerLen), cornerStroke)
+
+                        // Bottom Right
+                        drawLine(cornerColor, Offset(size.width - 10f, size.height - 10f), Offset(size.width - 10f - cornerLen, size.height - 10f), cornerStroke)
+                        drawLine(cornerColor, Offset(size.width - 10f, size.height - 10f), Offset(size.width - 10f, size.height - 10f - cornerLen), cornerStroke)
+
+                        // Laser Scanline
+                        val scanlineY = size.height * laserY
+                        drawLine(
+                            color = NeonCyan.copy(alpha = 0.45f),
+                            start = Offset(0f, scanlineY),
+                            end = Offset(size.width, scanlineY),
+                            strokeWidth = 2f
+                        )
+                    }
+
                     AnimatedContent(
                         targetState = currentScene,
                         transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(300)) },
@@ -319,9 +441,13 @@ private fun VideoShowcaseContent(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(68.dp)
+                                    .size(72.dp)
                                     .clip(CircleShape)
-                                    .background(CyberYellowContainer)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(CyberYellow.copy(alpha = 0.35f), Color(0xFF131D2D))
+                                        )
+                                    )
                                     .border(2.dp, CyberYellow, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -329,7 +455,7 @@ private fun VideoShowcaseContent(
                                     imageVector = scene.icon,
                                     contentDescription = null,
                                     tint = CyberYellow,
-                                    modifier = Modifier.size(34.dp)
+                                    modifier = Modifier.size(36.dp)
                                 )
                             }
 
@@ -338,18 +464,23 @@ private fun VideoShowcaseContent(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(CyberYellow)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(CyberYellow, Color(0xFFFFB300))
+                                        )
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = scene.highlightBadge,
                                     color = CyberBlack,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
                                 text = scene.title,
@@ -365,7 +496,8 @@ private fun VideoShowcaseContent(
                                 text = scene.subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = CyberYellow,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -374,44 +506,53 @@ private fun VideoShowcaseContent(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(10.dp)
+                            .padding(12.dp)
                     ) {
-                        GeneralChatLogo(size = 28.dp)
+                        GeneralChatLogo(size = 30.dp)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Timeline Scrubber & Controls
                 LinearProgressIndicator(
                     progress = { sceneProgress },
                     color = CyberYellow,
-                    trackColor = CyberCardBorder,
+                    trackColor = Color(0xFF182335),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = currentScene.category,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFF0D1522))
+                            .border(1.dp, Color(0xFF1D2F4A), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = currentScene.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NeonCyan,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
                     IconButton(
                         onClick = onTogglePlay,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
                             .background(CyberYellow)
                     ) {
@@ -419,7 +560,7 @@ private fun VideoShowcaseContent(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (isPlaying) "Duraklat" else "Oynat",
                             tint = CyberBlack,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
@@ -431,57 +572,69 @@ private fun VideoShowcaseContent(
         // Scene Explanation Card
         Card(
             colors = CardDefaults.cardColors(containerColor = CyberCardBg),
-            border = BorderStroke(1.dp, CyberCardBorder),
-            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, CyberYellow.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = currentScene.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = CyberYellow
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(CyberYellow)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = currentScene.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = CyberYellow
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = currentScene.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+                    color = Color.White.copy(alpha = 0.95f),
                     lineHeight = 22.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Quick Scene Navigation Pills
         Text(
             text = "Bölüm Seç:",
             style = MaterialTheme.typography.labelMedium,
             color = TextSecondary,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             showcaseScenes.forEachIndexed { index, sc ->
+                val isSel = sc == currentScene
                 Button(
                     onClick = { onSelectScene(index) },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (sc == currentScene) CyberYellow else CyberCardBg
+                        containerColor = if (isSel) CyberYellow else CyberCardBg
                     ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    border = BorderStroke(1.dp, if (isSel) CyberYellow else CyberCardBorder),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = "${index + 1}",
                         fontWeight = FontWeight.Black,
-                        color = if (sc == currentScene) CyberBlack else Color.White,
-                        fontSize = 12.sp
+                        color = if (isSel) CyberBlack else Color.White,
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -559,24 +712,33 @@ private fun ManualSection(title: String, content: String) {
     Card(
         colors = CardDefaults.cardColors(containerColor = CyberCardBg),
         border = BorderStroke(1.dp, CyberCardBorder),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = CyberYellow
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(CyberYellow)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Black,
+                    color = CyberYellow
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = content,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White,
-                lineHeight = 20.sp
+                color = Color.White.copy(alpha = 0.9f),
+                lineHeight = 21.sp
             )
         }
     }

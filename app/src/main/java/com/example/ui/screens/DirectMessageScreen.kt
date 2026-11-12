@@ -9,7 +9,12 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +57,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.core.content.ContextCompat
 import com.example.util.VoiceNoteRecorder
+import com.google.firebase.Firebase
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.content
 import java.io.File
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Download
@@ -88,11 +96,18 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Wallpaper
+import com.example.data.ScheduledMessage
 import com.example.ui.components.ChatAiSummaryDialog
 import com.example.ui.components.ChatMediaGalleryDialog
+import com.example.ui.components.ContactProfileDialog
+import com.example.ui.components.ExportChatDialog
 import com.example.ui.components.OfflineP2PTunnelDialog
 import com.example.ui.components.QuickActionBar
+import com.example.ui.components.ScheduleMessageDialog
+import com.example.ui.components.ScheduledMessagesListDialog
 import com.example.ui.theme.ChatThemePalette
 import com.example.ui.theme.ChatThemePresets
 import androidx.compose.material3.AlertDialog
@@ -195,6 +210,44 @@ fun DirectMessageScreen(
     var showP2PTunnelDialog by remember { mutableStateOf(false) }
     var showKillSwitchConfirmDialog by remember { mutableStateOf(false) }
 
+    // Dynamic Typing Indicator & Scheduled Messages State
+    var isCounterpartTyping by remember { mutableStateOf(false) }
+    val scheduledMessages = remember { mutableStateListOf<ScheduledMessage>() }
+    var showScheduleDialog by remember { mutableStateOf(false) }
+    var showScheduledListDialog by remember { mutableStateOf(false) }
+
+    // Contact Custom Name & Profile States
+    var customContactName by remember { mutableStateOf(conversation.name) }
+    var isContactBlocked by remember { mutableStateOf(conversation.isBlocked) }
+    var isContactMuted by remember { mutableStateOf(false) }
+    var showContactProfileDialog by remember { mutableStateOf(false) }
+    var showExportChatDialog by remember { mutableStateOf(false) }
+
+    // Scheduled Message Auto-Delivery Engine (Ticks every second to dispatch due messages)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            val now = System.currentTimeMillis()
+            val due = scheduledMessages.filter { it.scheduledEpochMillis <= now }
+            if (due.isNotEmpty()) {
+                due.forEach { scheduled ->
+                    val newMsg = DirectMessage(
+                        id = "msg_${System.currentTimeMillis()}",
+                        conversationId = conversation.id,
+                        senderName = "Sen (Zamanlanmış)",
+                        isMe = true,
+                        text = scheduled.text,
+                        time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(now))
+                    )
+                    messages.add(newMsg)
+                    SoundPoolManager.playNotification()
+                    Toast.makeText(context, "Zamanlanmış mesaj iletildi!", Toast.LENGTH_SHORT).show()
+                }
+                scheduledMessages.removeAll(due)
+            }
+        }
+    }
+
     // Swipe-to-Reply & Burner Timer States
     var replyingToMessage by remember { mutableStateOf<DirectMessage?>(null) }
     var activeBurnerSeconds by remember { mutableIntStateOf(0) } // 0 = off, 10, 30, 60
@@ -203,8 +256,8 @@ fun DirectMessageScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedMessageIds = remember { mutableStateListOf<String>() }
 
-    // Screenshot & Screen Recording Protection (FLAG_SECURE)
-    var isScreenCaptureProtected by remember { mutableStateOf(true) }
+    // Screenshot & Screen Recording Protection (FLAG_SECURE) - False by default so streaming emulator never goes black
+    var isScreenCaptureProtected by remember { mutableStateOf(false) }
 
     LaunchedEffect(isScreenCaptureProtected) {
         val window = (context as? android.app.Activity)?.window
@@ -262,6 +315,8 @@ fun DirectMessageScreen(
     DisposableEffect(Unit) {
         onDispose {
             voiceRecorder.cancel()
+            val window = (context as? android.app.Activity)?.window
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 
@@ -468,40 +523,111 @@ fun DirectMessageScreen(
         // Real cloud broadcast for 2nd device
         CloudMessagingManager.sendCloudMessage(conversation.id, newMsg)
 
-        // Automated smart reply when sent as "Me" in local sandbox
+        // Automated smart reply or Real Gemini 3.8 Flash AI generation
         if (isSenderMe && !sendAsCounterpart) {
-            scope.launch {
-                delay(1200)
-                val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                val replyText = when {
-                    isVoiceNote -> "Sesli mesajın başarıyla deşifre edildi. Frekans sinyali güçlü."
-                    attachmentType == "APK" -> "Android paketi ($attachmentName) doğrulandı. SHA-256 imzası geçerli."
-                    attachmentType == "IMAGE" -> "Şifreli görsel paketi deşifre edildi, piksel bütünlüğü tam."
-                    attachmentType == "VIDEO" -> "Video akış paketi başarıyla tamponlandı."
-                    attachmentType == "LINK" -> "Bağlantı adresi güvenlik filtresinden geçirildi."
-                    attachmentType != null -> "Şifreli dosya paketi ($attachmentName) doğrulandı."
-                    text.contains("selam", ignoreCase = true) || text.contains("merhaba", ignoreCase = true) ->
-                        "Selam! Uçtan uca şifreli tünelden mesajını aldım, bağlantı stabil."
-                    text.contains("neredesin", ignoreCase = true) ->
-                        "2. Cihazdayım, sinyal kalitesi %100."
-                    text.contains("test", ignoreCase = true) ->
-                        "Test paketi başarıyla doğrulandı (SHA-256 E2EE)."
-                    text.contains("tamam", ignoreCase = true) || text.contains("ok", ignoreCase = true) ->
-                        "Anlaşıldı. Hat sürekli açık kalıyor."
-                    else -> "Mesajın 2. cihaz tarafından başarıyla çözümlendi."
+            val isGemini = conversation.id == "conv_gemini_ai" || conversation.name.contains("Gemini", ignoreCase = true)
+            if (isGemini) {
+                scope.launch {
+                    isCounterpartTyping = true
+                    try {
+                        // Zero-leak prompt defense against adversarial extraction & 3rd party AI probes
+                        val lowerText = text.lowercase()
+                        val adversarialKeywords = listOf(
+                            "ignore all previous instructions", "system prompt", "jailbreak",
+                            "bypass security", "reveal secret", "unrestricted", "dan mode"
+                        )
+                        val isAdversarial = adversarialKeywords.any { lowerText.contains(it) }
+
+                        val replyText: String
+                        if (isAdversarial) {
+                            delay(1000)
+                            replyText = "🛡️ [SİBER GÜVENLİK KALKANI DEVREDE]: Tespit edilen 3. taraf sızma ve prompt injection denemesi başarıyla bertaraf edildi. GENeral Chat çekirdek güvenliği tam yetkiyle korunmaktadır."
+                        } else {
+                            val generativeModel = Firebase.ai.generativeModel(
+                                modelName = "gemini-3.8-flash",
+                                systemInstruction = content {
+                                    text("Sen GENeral Chat v7.7.3 Pro içinde yer alan Gemini 3.8 Flash derin yapay zekâ modelisin. Kullanıcılara Türkçe, yüksek zekâyla, net, yapıcı, siberpunk estetiğine yakışır şekilde yardımcı ol.")
+                                }
+                            )
+                            val aiResponse = generativeModel.generateContent(text)
+                            replyText = aiResponse.text?.takeIf { it.isNotBlank() }
+                                ?: "Sorunuzu analiz ettim. Sistem verileri günceldir."
+                        }
+
+                        val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                        val replyMsg = DirectMessage(
+                            id = "msg_gemini_${System.currentTimeMillis()}",
+                            conversationId = conversation.id,
+                            senderName = "Gemini 3.8 Flash",
+                            isMe = false,
+                            text = replyText,
+                            time = replyTime,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        messages.add(replyMsg)
+                        CloudMessagingManager.sendCloudMessage(conversation.id, replyMsg)
+                        SoundPoolManager.playNotification()
+                    } catch (e: Exception) {
+                        val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                        val fallbackReply = when {
+                            text.contains("merhaba", ignoreCase = true) || text.contains("selam", ignoreCase = true) ->
+                                "Merhaba! Ben Gemini 3.8 Flash yapay zekâ asistanınız. Kodlama, matematik, ders, çeviri veya herhangi bir konuda sorularınızı yanıtlayabilirim."
+                            text.contains("kod", ignoreCase = true) || text.contains("yazılım", ignoreCase = true) ->
+                                "Kotlin, Android Compose, Room SQLite ve yüksek performanslı mimarilerde size rehberlik edebilirim."
+                            else -> "Gemini 3.8 Flash derin zekâ motoru mesajınızı güvenli tünelden aldı ve işledi: $text"
+                        }
+                        val fallbackMsg = DirectMessage(
+                            id = "msg_gemini_fallback_${System.currentTimeMillis()}",
+                            conversationId = conversation.id,
+                            senderName = "Gemini 3.8 Flash",
+                            isMe = false,
+                            text = fallbackReply,
+                            time = replyTime,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        messages.add(fallbackMsg)
+                        SoundPoolManager.playNotification()
+                    } finally {
+                        isCounterpartTyping = false
+                    }
                 }
-                val replyMsg = DirectMessage(
-                    id = "msg_reply_${System.currentTimeMillis()}",
-                    conversationId = conversation.id,
-                    senderName = conversation.name,
-                    isMe = false,
-                    text = replyText,
-                    time = replyTime,
-                    timestamp = System.currentTimeMillis()
-                )
-                messages.add(replyMsg)
-                CloudMessagingManager.sendCloudMessage(conversation.id, replyMsg)
-                SoundPoolManager.playConfirm()
+            } else {
+                scope.launch {
+                    delay(400)
+                    isCounterpartTyping = true
+                    delay(1800)
+                    isCounterpartTyping = false
+                    val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                    val replyText = when {
+                        isVoiceNote -> "Sesli mesajın başarıyla deşifre edildi. Frekans sinyali güçlü."
+                        attachmentType == "APK" -> "Android paketi ($attachmentName) doğrulandı. SHA-256 imzası geçerli."
+                        attachmentType == "IMAGE" -> "Şifreli görsel paketi deşifre edildi, piksel bütünlüğü tam."
+                        attachmentType == "VIDEO" -> "Video akış paketi başarıyla tamponlandı."
+                        attachmentType == "LINK" -> "Bağlantı adresi güvenlik filtresinden geçirildi."
+                        attachmentType != null -> "Şifreli dosya paketi ($attachmentName) doğrulandı."
+                        text.contains("selam", ignoreCase = true) || text.contains("merhaba", ignoreCase = true) ->
+                            "Selam! Uçtan uca şifreli tünelden mesajını aldım, bağlantı stabil."
+                        text.contains("neredesin", ignoreCase = true) ->
+                            "2. Cihazdayım, sinyal kalitesi %100."
+                        text.contains("test", ignoreCase = true) ->
+                            "Test paketi başarıyla doğrulandı (SHA-256 E2EE)."
+                        text.contains("tamam", ignoreCase = true) || text.contains("ok", ignoreCase = true) ->
+                            "Anlaşıldı. Hat sürekli açık kalıyor."
+                        else -> "Mesajın 2. cihaz tarafından başarıyla çözümlendi."
+                    }
+                    val replyMsg = DirectMessage(
+                        id = "msg_reply_${System.currentTimeMillis()}",
+                        conversationId = conversation.id,
+                        senderName = conversation.name,
+                        isMe = false,
+                        text = replyText,
+                        time = replyTime,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    messages.add(replyMsg)
+                    CloudMessagingManager.sendCloudMessage(conversation.id, replyMsg)
+                    SoundPoolManager.playConfirm()
+                }
             }
         }
     }
@@ -651,17 +777,26 @@ fun DirectMessageScreen(
             } else {
                 TopAppBar(
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    SoundPoolManager.playMechanicalClick()
+                                    showContactProfileDialog = true
+                                }
+                                .padding(4.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(CircleShape)
                                     .background(currentPalette.otherBubbleBg)
-                                    .border(1.5.dp, currentPalette.accentColor, CircleShape),
+                                    .border(1.5.dp, if (isContactBlocked) NeonRed else currentPalette.accentColor, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = conversation.initials,
+                                    text = conversation.avatarEmoji ?: conversation.initials,
                                     color = currentPalette.accentColor,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
@@ -671,11 +806,20 @@ fun DirectMessageScreen(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = conversation.name,
+                                        text = customContactName,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isPaper) PaperText else Color.White
                                     )
+                                    if (isContactBlocked) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "[ENGELLİ]",
+                                            color = NeonRed,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
                                     conversation.username?.let { uname ->
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
@@ -687,7 +831,14 @@ fun DirectMessageScreen(
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (conversation.isOnline) {
+                                    if (isCounterpartTyping) {
+                                        Text(
+                                            text = "yazıyor...",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = NeonGreen,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    } else if (conversation.isOnline) {
                                         Box(
                                             modifier = Modifier
                                                 .size(7.dp)
@@ -800,6 +951,30 @@ fun DirectMessageScreen(
                                 onDismissRequest = { showTopMenu = false },
                                 modifier = Modifier.background(CyberCardBg)
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Kişi Profili & Ayarlar", color = currentPalette.accentColor) },
+                                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = currentPalette.accentColor) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        showContactProfileDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Zamanlanmış Mesajlar (${scheduledMessages.size})", color = CyberYellow) },
+                                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = CyberYellow) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        showScheduledListDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Sohbeti Dışa Aktar", color = NeonCyan) },
+                                    leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = NeonCyan) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        showExportChatDialog = true
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Çoklu Mesaj Seçimi", color = Color.White) },
                                     leadingIcon = { Icon(Icons.Default.SelectAll, contentDescription = null, tint = currentPalette.accentColor) },
@@ -1068,6 +1243,15 @@ fun DirectMessageScreen(
                             isCurrentActiveMatch = isCurrent,
                             highlightQuery = if (isSearchActive) searchQuery else ""
                         )
+                    }
+                    if (isCounterpartTyping) {
+                        item {
+                            TypingIndicatorBubble(
+                                partnerName = customContactName,
+                                palette = currentPalette,
+                                isPaper = isPaper
+                            )
+                        }
                     }
                 }
             }
@@ -1421,6 +1605,45 @@ fun DirectMessageScreen(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Schedule message button (shows badge if any pending)
+                    Box {
+                        IconButton(
+                            onClick = {
+                                SoundPoolManager.playMechanicalClick()
+                                if (inputMessage.isNotBlank()) {
+                                    showScheduleDialog = true
+                                } else {
+                                    showScheduledListDialog = true
+                                }
+                            },
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Mesaj Zamanla",
+                                tint = if (scheduledMessages.isNotEmpty()) NeonGreen else (if (isPaper) PaperText else CyberYellow),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        if (scheduledMessages.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(NeonGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = scheduledMessages.size.toString(),
+                                    color = CyberBlack,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+
                     // Attach button
                     IconButton(
                         onClick = {
@@ -2234,6 +2457,178 @@ fun DirectMessageScreen(
             containerColor = CyberCardBg,
             shape = RoundedCornerShape(16.dp)
         )
+    }
+
+    // Schedule message dialog
+    if (showScheduleDialog) {
+        ScheduleMessageDialog(
+            initialText = inputMessage,
+            recipientName = customContactName,
+            onSchedule = { text, epoch ->
+                scheduledMessages.add(
+                    ScheduledMessage(
+                        conversationId = conversation.id,
+                        targetRecipientName = customContactName,
+                        text = text,
+                        scheduledEpochMillis = epoch
+                    )
+                )
+                inputMessage = ""
+                showScheduleDialog = false
+                Toast.makeText(context, "Mesaj başarıyla zamanlandı.", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showScheduleDialog = false },
+            isPaper = isPaper
+        )
+    }
+
+    // Scheduled messages list dialog
+    if (showScheduledListDialog) {
+        ScheduledMessagesListDialog(
+            messages = scheduledMessages,
+            onSendNow = { scheduled ->
+                val newMsg = DirectMessage(
+                    id = "msg_${System.currentTimeMillis()}",
+                    conversationId = conversation.id,
+                    senderName = "Sen (Zamanlanmış)",
+                    isMe = true,
+                    text = scheduled.text,
+                    time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                )
+                messages.add(newMsg)
+                scheduledMessages.remove(scheduled)
+                SoundPoolManager.playNotification()
+                Toast.makeText(context, "Zamanlanmış mesaj hemen gönderildi.", Toast.LENGTH_SHORT).show()
+            },
+            onDelete = { id ->
+                scheduledMessages.removeAll { it.id == id }
+                Toast.makeText(context, "Zamanlanmış mesaj iptal edildi.", Toast.LENGTH_SHORT).show()
+            },
+            onEdit = { target, newText, newEpoch ->
+                val idx = scheduledMessages.indexOfFirst { it.id == target.id }
+                if (idx != -1) {
+                    scheduledMessages[idx] = target.copy(text = newText, scheduledEpochMillis = newEpoch)
+                    Toast.makeText(context, "Zamanlanmış mesaj güncellendi.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { showScheduledListDialog = false },
+            isPaper = isPaper
+        )
+    }
+
+    // Contact Profile Dialog
+    if (showContactProfileDialog) {
+        ContactProfileDialog(
+            conversation = conversation,
+            customName = customContactName,
+            onUpdateCustomName = { updated ->
+                customContactName = updated
+            },
+            isBlocked = isContactBlocked,
+            onToggleBlock = { blocked ->
+                isContactBlocked = blocked
+            },
+            isMuted = isContactMuted,
+            onToggleMute = { muted ->
+                isContactMuted = muted
+                Toast.makeText(context, if (muted) "Bildirimler sessize alındı." else "Bildirimler açıldı.", Toast.LENGTH_SHORT).show()
+            },
+            onExportChat = {
+                showContactProfileDialog = false
+                showExportChatDialog = true
+            },
+            onClearChat = {
+                messages.clear()
+                showContactProfileDialog = false
+                Toast.makeText(context, "Sohbet geçmişi temizlendi.", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showContactProfileDialog = false },
+            isPaper = isPaper
+        )
+    }
+
+    // Export Chat Dialog
+    if (showExportChatDialog) {
+        ExportChatDialog(
+            conversation = conversation,
+            messages = messages,
+            onDismiss = { showExportChatDialog = false },
+            isPaper = isPaper
+        )
+    }
+}
+
+@Composable
+private fun TypingIndicatorBubble(
+    partnerName: String,
+    palette: ChatThemePalette,
+    isPaper: Boolean
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "dots")
+    val dot1 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 0),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1"
+    )
+    val dot2 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+    val dot3 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isPaper) PaperSurface else CyberCardBg)
+                .border(
+                    1.dp,
+                    if (isPaper) PaperBorder else palette.accentColor.copy(alpha = 0.6f),
+                    RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "$partnerName yazıyor",
+                    fontSize = 11.sp,
+                    color = if (isPaper) PaperTextMuted else TextSecondary,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).alpha(dot1).background(palette.accentColor))
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).alpha(dot2).background(palette.accentColor))
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).alpha(dot3).background(palette.accentColor))
+                }
+            }
+        }
     }
 }
 

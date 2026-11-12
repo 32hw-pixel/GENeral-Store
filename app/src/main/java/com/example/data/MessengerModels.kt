@@ -64,9 +64,32 @@ data class CallHistoryItem(
 
 val defaultConversations = listOf(
     ConversationItem(
+        id = "conv_gemini_ai",
+        name = "Gemini 3.8 Flash AI",
+        initials = "AI",
+        avatarEmoji = "🤖",
+        isOnline = true,
+        lastMessage = "Merhaba! Gemini 3.8 Flash yapay zekâ modeliyim. Sorularını yanıtlamaya hazırım.",
+        lastTime = "Şimdi",
+        unreadCount = 1,
+        isVerified = true,
+        customTheme = "CYBER_YELLOW",
+        messages = listOf(
+            DirectMessage(
+                id = "m_ai_welcome",
+                conversationId = "conv_gemini_ai",
+                senderName = "Gemini 3.8 Flash",
+                isMe = false,
+                text = "Merhaba! Ben Gemini 3.8 Flash derin yapay zekâ asistanınız. Kodlama, matematik, ders, çeviri veya herhangi bir konuda bana soru sorabilirsiniz. Nasıl yardımcı olabilirim?",
+                time = "Şimdi"
+            )
+        )
+    ),
+    ConversationItem(
         id = "conv_gen_support",
         name = "GEN Destek Hattı",
         initials = "GD",
+        avatarEmoji = "🛡️",
         isOnline = true,
         lastMessage = "GENeral Chat güvenli iletişim tüneline hoş geldiniz.",
         lastTime = "Şimdi",

@@ -68,6 +68,10 @@ import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Groups
+import com.example.ui.components.CommunitiesView
+import com.example.ui.components.CreateGroupDialog
 import com.example.ui.components.CyberWidgetDialog
 import com.example.ui.components.CamouflageAppIdentityDialog
 import com.example.ui.components.FloatingCyberWidget
@@ -201,6 +205,7 @@ fun ChatScreen(
 
     // New Chat dialog
     var showNewChatDialog by remember { mutableStateOf(false) }
+    var showCreateGroupDialog by remember { mutableStateOf(false) }
     var newChatNameInput by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     var isVerifyingFriend by remember { mutableStateOf(false) }
@@ -297,11 +302,11 @@ fun ChatScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { selectedTab = 3 }) {
+                    IconButton(onClick = { selectedTab = 4 }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Ayarlar",
-                            tint = if (selectedTab == 3) CyberYellow else Color.White
+                            tint = if (selectedTab == 4) CyberYellow else Color.White
                         )
                     }
                 },
@@ -339,20 +344,20 @@ fun ChatScreen(
                     )
                 )
 
-                // Tab 1: Aramalar
+                // Tab 1: Topluluklar
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = "Aramalar",
+                            imageVector = Icons.Default.Groups,
+                            contentDescription = "Topluluklar",
                             tint = if (selectedTab == 1) CyberYellow else TextSecondary
                         )
                     },
                     label = {
                         Text(
-                            text = "Aramalar",
+                            text = "Topluluklar",
                             color = if (selectedTab == 1) CyberYellow else TextSecondary,
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                         )
@@ -362,20 +367,20 @@ fun ChatScreen(
                     )
                 )
 
-                // Tab 2: GEN AI
+                // Tab 2: Aramalar
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.SmartToy,
-                            contentDescription = "GEN AI",
+                            imageVector = Icons.Default.Call,
+                            contentDescription = "Aramalar",
                             tint = if (selectedTab == 2) CyberYellow else TextSecondary
                         )
                     },
                     label = {
                         Text(
-                            text = "GEN AI",
+                            text = "Aramalar",
                             color = if (selectedTab == 2) CyberYellow else TextSecondary,
                             fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
                         )
@@ -385,22 +390,45 @@ fun ChatScreen(
                     )
                 )
 
-                // Tab 3: Ayarlar
+                // Tab 3: GEN AI
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Ayarlar",
+                            imageVector = Icons.Default.SmartToy,
+                            contentDescription = "GEN AI",
                             tint = if (selectedTab == 3) CyberYellow else TextSecondary
                         )
                     },
                     label = {
                         Text(
-                            text = "Ayarlar",
+                            text = "GEN AI",
                             color = if (selectedTab == 3) CyberYellow else TextSecondary,
                             fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = CyberYellowContainer
+                    )
+                )
+
+                // Tab 4: Ayarlar
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Ayarlar",
+                            tint = if (selectedTab == 4) CyberYellow else TextSecondary
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = "Ayarlar",
+                            color = if (selectedTab == 4) CyberYellow else TextSecondary,
+                            fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Normal
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
@@ -421,21 +449,25 @@ fun ChatScreen(
                 0 -> SohbetlerTabContent(
                     conversations = conversations,
                     onConversationClick = { activeConversation = it },
-                    onGoToAi = { selectedTab = 2 },
+                    onGoToAi = { selectedTab = 3 },
                     onOpenAuth = onOpenAuth,
                     onOpenChannel = onOpenChannel,
                     onOpenCloudSetup = { showCloudConfigDialog = true }
                 )
-                1 -> AramalarTabContent(
+                1 -> CommunitiesView(
+                    onOpenCommunityChat = { activeConversation = it },
+                    isPaper = isPaperMode
+                )
+                2 -> AramalarTabContent(
                     callHistory = callHistory,
                     onStartCall = { name, isVideo ->
                         activeCallContact = Pair(name, isVideo)
                     }
                 )
-                2 -> GenAiTabContent(
+                3 -> GenAiTabContent(
                     chatViewModel = chatViewModel
                 )
-                3 -> AyarlarTabContent(
+                4 -> AyarlarTabContent(
                     currentUser = currentUser,
                     isPaperMode = isPaperMode,
                     onTogglePaperMode = onTogglePaperMode,
@@ -512,6 +544,25 @@ fun ChatScreen(
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 11.sp
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = {
+                            SoundPoolManager.playMechanicalClick()
+                            showNewChatDialog = false
+                            showCreateGroupDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF132B1F)),
+                        border = BorderStroke(1.dp, NeonGreen),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp)
+                    ) {
+                        Icon(Icons.Default.GroupAdd, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("👥 Yeni Grup Sohbeti Oluştur (Çoklu Kişi)", color = NeonGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -958,6 +1009,17 @@ fun ChatScreen(
         )
     }
 
+    if (showCreateGroupDialog) {
+        CreateGroupDialog(
+            onGroupCreated = { newGroup ->
+                conversations.add(0, newGroup)
+                activeConversation = newGroup
+            },
+            onDismiss = { showCreateGroupDialog = false },
+            isPaper = isPaperMode
+        )
+    }
+
     // Cloud connection dialog (Frame 00:05 "Bulut bağlantısını ayarla")
     if (showCloudConfigDialog) {
         AlertDialog(
@@ -1026,16 +1088,30 @@ private fun SohbetlerTabContent(
     onOpenCloudSetup: () -> Unit
 ) {
     val isPaper = com.example.ui.theme.LocalPaperMode.current
-    val scrollState = rememberScrollState()
+    var chatSearchQuery by remember { mutableStateOf("") }
+    val displayedConversations = remember(conversations.toList(), chatSearchQuery) {
+        if (chatSearchQuery.isBlank()) conversations
+        else {
+            val q = chatSearchQuery.trim().lowercase(java.util.Locale.getDefault())
+            conversations.filter { conv ->
+                conv.name.lowercase(java.util.Locale.getDefault()).contains(q) ||
+                (conv.username?.lowercase(java.util.Locale.getDefault())?.contains(q) == true) ||
+                conv.messages.any { m ->
+                    m.text.lowercase(java.util.Locale.getDefault()).contains(q) ||
+                    m.time.contains(q)
+                }
+            }
+        }
+    }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .padding(horizontal = 18.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
 
         // Big Yellow Squircle Logo matching Frame 00:05
         GeneralChatLogo(size = 84.dp)
@@ -1257,22 +1333,6 @@ private fun SohbetlerTabContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        var chatSearchQuery by remember { mutableStateOf("") }
-        val displayedConversations = remember(conversations.toList(), chatSearchQuery) {
-            if (chatSearchQuery.isBlank()) conversations
-            else {
-                val q = chatSearchQuery.trim().lowercase(java.util.Locale.getDefault())
-                conversations.filter { conv ->
-                    conv.name.lowercase(java.util.Locale.getDefault()).contains(q) ||
-                    (conv.username?.lowercase(java.util.Locale.getDefault())?.contains(q) == true) ||
-                    conv.messages.any { m ->
-                        m.text.lowercase(java.util.Locale.getDefault()).contains(q) ||
-                        m.time.contains(q)
-                    }
-                }
-            }
-        }
-
         // Real Messaging Section Search & Filter
         OutlinedTextField(
             value = chatSearchQuery,
@@ -1334,23 +1394,26 @@ private fun SohbetlerTabContent(
         }
 
         Spacer(modifier = Modifier.height(10.dp))
+        }
 
         if (displayedConversations.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Aramanızla eşleşen sohbet veya mesaj bulunamadı.",
-                    color = if (isPaper) PaperTextMuted else TextMuted,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center
-                )
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Aramanızla eşleşen sohbet veya mesaj bulunamadı.",
+                        color = if (isPaper) PaperTextMuted else TextMuted,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         } else {
-            displayedConversations.forEach { conv ->
+            items(displayedConversations, key = { it.id }) { conv ->
                 ConversationRowItem(
                     conversation = conv,
                     onClick = {
@@ -1362,7 +1425,9 @@ private fun SohbetlerTabContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 

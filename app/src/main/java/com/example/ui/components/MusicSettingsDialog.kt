@@ -93,19 +93,21 @@ data class RoyaltyFreeSong(
     val artist: String,
     val genre: String,
     val duration: String,
-    val isChill: Boolean
+    val isChill: Boolean,
+    val playbackSpeed: Float = 1.0f,
+    val playbackPitch: Float = 1.0f
 )
 
 val curatedRoyaltyFreeTracks = listOf(
-    RoyaltyFreeSong("Neon Glitch Protocol", "GEN Cybernetics", "Siberpunk", "03:42", false),
-    RoyaltyFreeSong("Tokyo Rain Lo-Fi Beat", "Sub-Zero Audio", "Lo-Fi Chill", "02:58", true),
-    RoyaltyFreeSong("Midnight Synthwave Drift", "Vector Wave", "Synthwave", "04:15", false),
-    RoyaltyFreeSong("Deep Night Ambient (2700K)", "Acoustic Silence", "Derin Gece", "05:10", true),
-    RoyaltyFreeSong("Neural Network Pulse", "Binary Soul", "Siberpunk", "03:20", false),
-    RoyaltyFreeSong("Coffee & Matte Ink", "Paper Beats", "Lo-Fi Chill", "02:44", true),
-    RoyaltyFreeSong("Grid Runner 2099", "Retrograde", "Synthwave", "03:50", false),
-    RoyaltyFreeSong("Zero-Day Exploit Groove", "Ghost In Shell", "Siberpunk", "03:12", false),
-    RoyaltyFreeSong("Safe Harbor Sleepwave", "Sleep Architect", "Derin Gece", "06:05", true)
+    RoyaltyFreeSong("Neon Glitch Protocol", "GEN Cybernetics", "Siberpunk", "03:42", false, 1.20f, 1.15f),
+    RoyaltyFreeSong("Tokyo Rain Lo-Fi Beat", "Sub-Zero Audio", "Lo-Fi Chill", "02:58", true, 0.88f, 0.90f),
+    RoyaltyFreeSong("Midnight Synthwave Drift", "Vector Wave", "Synthwave", "04:15", false, 1.05f, 0.95f),
+    RoyaltyFreeSong("Deep Night Ambient (2700K)", "Acoustic Silence", "Derin Gece", "05:10", true, 0.78f, 0.82f),
+    RoyaltyFreeSong("Neural Network Pulse", "Binary Soul", "Siberpunk", "03:20", false, 1.30f, 1.22f),
+    RoyaltyFreeSong("Coffee & Matte Ink", "Paper Beats", "Lo-Fi Chill", "02:44", true, 0.95f, 1.00f),
+    RoyaltyFreeSong("Grid Runner 2099", "Retrograde", "Synthwave", "03:50", false, 1.12f, 1.04f),
+    RoyaltyFreeSong("Zero-Day Exploit Groove", "Ghost In Shell", "Siberpunk", "03:12", false, 0.92f, 0.86f),
+    RoyaltyFreeSong("Safe Harbor Sleepwave", "Sleep Architect", "Derin Gece", "06:05", true, 0.70f, 0.75f)
 )
 
 /**
@@ -630,7 +632,12 @@ fun MusicSettingsDialog(
                             Card(
                                 onClick = {
                                     SoundPoolManager.playMechanicalClick()
-                                    BackgroundMusicManager.setCustomRoyaltyFreeTrack(track.title, track.isChill)
+                                    BackgroundMusicManager.setCustomRoyaltyFreeTrack(
+                                        track.title,
+                                        track.isChill,
+                                        track.playbackSpeed,
+                                        track.playbackPitch
+                                    )
                                 },
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (isCurrentPlaying) Color(0xFF142436) else (if (isPaper) PaperSurface else CyberBlack)
@@ -685,7 +692,12 @@ fun MusicSettingsDialog(
                                     Button(
                                         onClick = {
                                             SoundPoolManager.playMechanicalClick()
-                                            BackgroundMusicManager.setCustomRoyaltyFreeTrack(track.title, track.isChill)
+                                            BackgroundMusicManager.setCustomRoyaltyFreeTrack(
+                                                track.title,
+                                                track.isChill,
+                                                track.playbackSpeed,
+                                                track.playbackPitch
+                                            )
                                         },
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = if (isCurrentPlaying) NeonCyan else (if (isPaper) PaperBorder else CyberCardBorder)

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,6 +47,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -92,6 +95,16 @@ fun SloganScreen(
         label = "pulse_glow"
     )
 
+    val radarRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "radar_rotation"
+    )
+
     fun triggerGlitchAndEnter() {
         if (isGlitching) return
         isGlitching = true
@@ -124,11 +137,11 @@ fun SloganScreen(
     ) {
         // Sci-Fi Cyber Grid Background
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val step = 50f
+            val step = 45f
             var x = 0f
             while (x < size.width) {
                 drawLine(
-                    color = Color(0xFF131D2E).copy(alpha = 0.35f),
+                    color = Color(0xFF13223A).copy(alpha = 0.35f),
                     start = Offset(x, 0f),
                     end = Offset(x, size.height),
                     strokeWidth = 1f
@@ -138,7 +151,7 @@ fun SloganScreen(
             var y = 0f
             while (y < size.height) {
                 drawLine(
-                    color = Color(0xFF131D2E).copy(alpha = 0.35f),
+                    color = Color(0xFF13223A).copy(alpha = 0.35f),
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
                     strokeWidth = 1f
@@ -150,9 +163,9 @@ fun SloganScreen(
         // Ambient center radial glow
         Box(
             modifier = Modifier
-                .size(320.dp)
+                .size(340.dp)
                 .scale(pulseGlow)
-                .alpha(0.18f)
+                .alpha(0.22f)
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(CyberYellow, NeonCyan, Color.Transparent)
@@ -170,14 +183,14 @@ fun SloganScreen(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF0B1424))
-                    .border(1.dp, CyberYellow.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .background(Color(0xFF0B1728))
+                    .border(1.5.dp, CyberYellow.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 18.dp, vertical = 7.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(8.dp)
                             .clip(CircleShape)
                             .background(NeonGreen)
                     )
@@ -193,20 +206,68 @@ fun SloganScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Authentic Logo
-            GeneralChatLogo(size = 72.dp)
+            // Authentic Logo with Holographic Rotating Cyber Reticle
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(110.dp)
+            ) {
+                // Rotating Radar Ring
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { rotationZ = radarRotation }
+                ) {
+                    val stroke = Stroke(width = 1.5f)
+                    drawCircle(
+                        color = NeonCyan.copy(alpha = 0.45f),
+                        radius = size.minDimension / 2f,
+                        style = stroke
+                    )
+                    // Radar tick marks
+                    val r = size.minDimension / 2f
+                    for (i in 0 until 12) {
+                        val angleRad = (i * 30f) * (Math.PI / 180f).toFloat()
+                        val startOffset = Offset(
+                            center.x + (r - 12f) * kotlin.math.cos(angleRad),
+                            center.y + (r - 12f) * kotlin.math.sin(angleRad)
+                        )
+                        val endOffset = Offset(
+                            center.x + r * kotlin.math.cos(angleRad),
+                            center.y + r * kotlin.math.sin(angleRad)
+                        )
+                        drawLine(
+                            color = if (i % 3 == 0) CyberYellow else NeonCyan.copy(alpha = 0.6f),
+                            start = startOffset,
+                            end = endOffset,
+                            strokeWidth = if (i % 3 == 0) 2.5f else 1.5f
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(36.dp))
+                GeneralChatLogo(size = 72.dp)
+            }
 
-            // High-End Cinematic Slogan Container
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // High-End Cinematic Slogan Container with Cyber Brackets
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF080F1C).copy(alpha = 0.9f))
-                    .border(1.5.dp, if (isGlitching) NeonCyan else CyberCardBorder, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF0F1829), Color(0xFF070D18))
+                        )
+                    )
+                    .border(
+                        BorderStroke(
+                            1.5.dp,
+                            if (isGlitching) Brush.linearGradient(listOf(NeonCyan, NeonCyan)) else Brush.linearGradient(listOf(CyberYellow, NeonCyan))
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
                     .padding(horizontal = 20.dp, vertical = 28.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -220,7 +281,7 @@ fun SloganScreen(
                             text = "GENÇ",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Black,
-                            fontSize = 32.sp,
+                            fontSize = 34.sp,
                             color = CyberYellow,
                             letterSpacing = 2.sp,
                             modifier = Modifier.scale(mainWordScale.value)
@@ -230,7 +291,7 @@ fun SloganScreen(
                             text = "'in dilinden",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
+                            fontSize = 28.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .alpha(glitchAlpha.value)
@@ -244,7 +305,7 @@ fun SloganScreen(
                         text = "yaşlı değil",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
+                        fontSize = 23.sp,
                         color = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier
                             .alpha(glitchAlpha.value)
@@ -262,7 +323,7 @@ fun SloganScreen(
                             text = "GENç ",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Black,
-                            fontSize = 34.sp,
+                            fontSize = 36.sp,
                             color = NeonCyan,
                             letterSpacing = 2.sp,
                             modifier = Modifier.scale(mainWordScale.value)
@@ -271,7 +332,7 @@ fun SloganScreen(
                             text = "anlar",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
+                            fontSize = 32.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .alpha(glitchAlpha.value)

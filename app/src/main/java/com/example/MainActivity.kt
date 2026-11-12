@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,6 +56,8 @@ import com.example.ui.screens.SloganScreen
 import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.VerifyCodeScreen
 import com.example.ui.theme.MyApplicationTheme
+import com.example.util.LocalRefreshRateConfig
+import com.example.util.RefreshRateManager
 import com.example.util.SoundPoolManager
 import com.example.util.configureAppCheck
 
@@ -68,26 +71,8 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
-        // Ultra-Smooth 120Hz ProMotion & 1080p FHD+ Display Mode Configuration
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                val display = windowManager.defaultDisplay
-                val modes = display.supportedModes
-                // Prioritize modes that provide 1080p (physicalWidth >= 1080 or physicalHeight >= 1920) with maximum refresh rate (up to 120Hz)
-                val fhd1080pModes = modes.filter { it.physicalWidth >= 1080 || it.physicalHeight >= 1920 }
-                val targetMode = if (fhd1080pModes.isNotEmpty()) {
-                    fhd1080pModes.maxByOrNull { it.refreshRate }
-                } else {
-                    modes.maxByOrNull { it.refreshRate }
-                }
-
-                if (targetMode != null) {
-                    val params = window.attributes
-                    params.preferredDisplayModeId = targetMode.modeId
-                    window.attributes = params
-                }
-            }
-        } catch (_: Exception) {}
+        // Ultra-Smooth 120Hz ProMotion & 1080p FHD+ Display Mode Configuration via RefreshRateManager
+        val refreshRateConfig = RefreshRateManager.applyRefreshRate(window, applicationContext)
 
         // Zero-latency SoundPool initialization
         SoundPoolManager.init(applicationContext)
@@ -103,31 +88,33 @@ class MainActivity : ComponentActivity() {
         val chatRepository = ChatRepository(database.chatDao())
 
         setContent {
-            val authViewModel: AuthViewModel = viewModel(
-                factory = AuthViewModelFactory(authRepository)
-            )
-
-            val panicViewModel: com.example.ui.PanicViewModel = viewModel(
-                factory = com.example.ui.PanicViewModelFactory(applicationContext, chatRepository)
-            )
-
-            val isPaperMode by authViewModel.isPaperMode.collectAsState()
-            val appThemeMode by authViewModel.appThemeMode.collectAsState()
-
-            MyApplicationTheme(themeMode = appThemeMode, paperMode = isPaperMode) {
-                val currentUser by authViewModel.currentUser.collectAsState()
-
-                val chatViewModel: ChatViewModel = viewModel(
-                    key = currentUser?.id?.toString() ?: "guest",
-                    factory = ChatViewModelFactory(chatRepository, currentUser?.id)
+            CompositionLocalProvider(LocalRefreshRateConfig provides refreshRateConfig) {
+                val authViewModel: AuthViewModel = viewModel(
+                    factory = AuthViewModelFactory(authRepository)
                 )
 
-                MainAppContent(
-                    authViewModel = authViewModel,
-                    chatViewModel = chatViewModel,
-                    panicViewModel = panicViewModel,
-                    database = database
+                val panicViewModel: com.example.ui.PanicViewModel = viewModel(
+                    factory = com.example.ui.PanicViewModelFactory(applicationContext, chatRepository)
                 )
+
+                val isPaperMode by authViewModel.isPaperMode.collectAsState()
+                val appThemeMode by authViewModel.appThemeMode.collectAsState()
+
+                MyApplicationTheme(themeMode = appThemeMode, paperMode = isPaperMode) {
+                    val currentUser by authViewModel.currentUser.collectAsState()
+
+                    val chatViewModel: ChatViewModel = viewModel(
+                        key = currentUser?.id?.toString() ?: "guest",
+                        factory = ChatViewModelFactory(chatRepository, currentUser?.id)
+                    )
+
+                    MainAppContent(
+                        authViewModel = authViewModel,
+                        chatViewModel = chatViewModel,
+                        panicViewModel = panicViewModel,
+                        database = database
+                    )
+                }
             }
         }
     }

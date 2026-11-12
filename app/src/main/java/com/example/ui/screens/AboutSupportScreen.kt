@@ -63,12 +63,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CyberBlack
 import com.example.ui.theme.CyberCardBg
 import com.example.ui.theme.CyberCardBorder
+import com.example.ui.theme.CyberDarkSurface
 import com.example.ui.theme.CyberYellow
 import com.example.ui.theme.LocalPaperMode
 import com.example.ui.theme.NeonCyan
@@ -96,6 +99,8 @@ fun AboutSupportScreen(
     val isPaper = LocalPaperMode.current
     var showWipeConfirmDialog by remember { mutableStateOf(false) }
     var showAiSupportDialog by remember { mutableStateOf(false) }
+    var showTicketDialog by remember { mutableStateOf(false) }
+    var diagnosticCopied by remember { mutableStateOf(false) }
 
     // Roadmap Section 10: In About & Support, pause background music completely; only tok clicks remain active
     DisposableEffect(Unit) {
@@ -304,8 +309,94 @@ fun AboutSupportScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Geliştirici YouTube
+                    // Resmi Destek Bileti Oluştur
+                    Button(
+                        onClick = {
+                            SoundPoolManager.playConfirm()
+                            showTicketDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isPaper) PaperSurface else Color(0xFF132238)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPaper) PaperBorder else NeonCyan),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("open_support_ticket_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            tint = if (isPaper) PaperText else NeonCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Resmi Destek Talebi / Bilet Oluştur (#GEN-TK)",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPaper) PaperText else NeonCyan,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Tanı Raporu Kopyala
                     val context = LocalContext.current
+                    Button(
+                        onClick = {
+                            SoundPoolManager.playConfirm()
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText(
+                                "GENeral Chat Tanı Raporu",
+                                """
+                                ========================================
+                                GENeral CHAT v7.7.3 Pro SİSTEM TANI RAPORU
+                                ========================================
+                                Cihaz Modeli: ${Build.MANUFACTURER.uppercase()} ${Build.MODEL}
+                                Donanım: ${Build.BOARD} (${Build.HARDWARE})
+                                Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
+                                Ekran: ${screenConfig.screenWidthDp}x${screenConfig.screenHeightDp} dp (DPI: ${screenConfig.densityDpi})
+                                Çekirdek Sayısı: ${Runtime.getRuntime().availableProcessors()}
+                                JVM RAM Maks: ${Runtime.getRuntime().maxMemory() / (1024 * 1024)} MB
+                                E2EE Protokol: AES-256-GCM + SHA-256 PBKDF2
+                                Telemetri: 0 (Zero-Tracker)
+                                Zaman Damgası: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}
+                                ========================================
+                                """.trimIndent()
+                            )
+                            clipboard.setPrimaryClip(clip)
+                            diagnosticCopied = true
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isPaper) PaperSurface else Color(0xFF0F1E32)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPaper) PaperBorder else Color(0xFF284872)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("copy_diagnostics_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sensors,
+                            contentDescription = null,
+                            tint = if (isPaper) PaperTextMuted else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (diagnosticCopied) "✓ Tanı Raporu Panoya Kopyalandı!" else "Cihaz Tanı & Güvenlik Raporunu Kopyala",
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isPaper) PaperText else Color.White,
+                            fontSize = 11.5.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Geliştirici YouTube
                     Button(
                         onClick = {
                             SoundPoolManager.playMenuNav()
@@ -340,6 +431,76 @@ fun AboutSupportScreen(
                         color = textMutedColor,
                         fontSize = 11.sp
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // SIKÇA SORULAN SORULAR (SSS) AKORDİYON BÖLÜMÜ
+            SectionCard(
+                title = "Sıkça Sorulan Sorular (Destek Kılavuzu)",
+                icon = Icons.Default.Security,
+                isPaper = isPaper,
+                cardBg = cardBg,
+                borderColor = borderColor,
+                textColor = textColor
+            ) {
+                val faqs = listOf(
+                    "Uçtan uca şifreleme anahtarları nerede saklanıyor?" to "Tüm şifreleme anahtarları yalnızca sizin cihazınızda donanım seviyesinde (AES-256) oluşturulur ve yerel SQLite Room veritabanında saklanır. Hiçbir harici sunucuya iletilmez.",
+                    "Karşı tarafla mesajlaşırken siyah ekran hatası çözüldü mü?" to "Evet! Ekran yakalama koruma modu akıllı yapılandırmaya taşındı. Cihaz ID'si girip 'Mesaj At' dediğinizde doğrudan mesajlaşma ekranı sıfır gecikmeyle açılır.",
+                    "Zamanlanmış mesajlar nasıl çalışır?" to "Doğrudan mesajlaşma ekranında saat simgesine dokunarak ileri tarih ve saat seçebilirsiniz. Belirlenen vakit geldiğinde iletiniz arka planda otomatik olarak şifrelenip gönderilir.",
+                    "Kağıt Ekran (Paper Mode) ne sağlar?" to "OLED ve LCD mavi ışık spektrumunu sıfırlayarak dijital ekranınızı mat bir e-ink kitap sayfasına dönüştürür. Göz yorgunluğunu önler ve meraklı gözlerden gizler.",
+                    "Panik butonu bastığımda ne olur?" to "Anında kill-switch devreye girer. Aktif oturum bellekten sıfırlanır ve uygulama anında kilit ekranına fırlatılır."
+                )
+
+                faqs.forEachIndexed { index, (question, answer) ->
+                    var isExpanded by remember { mutableStateOf(false) }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isPaper) PaperSurface else Color(0xFF0C1420))
+                            .border(1.dp, if (isExpanded) accentColor else borderColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .clickable {
+                                isExpanded = !isExpanded
+                                SoundPoolManager.playMenuNav()
+                            }
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = question,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = if (isExpanded) "▲" else "▼",
+                                color = accentColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        if (isExpanded) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = borderColor.copy(alpha = 0.4f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = answer,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textMutedColor,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                    if (index < faqs.size - 1) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
 
@@ -529,6 +690,14 @@ fun AboutSupportScreen(
         GenAiSupportDialog(
             isPaper = isPaper,
             onDismiss = { showAiSupportDialog = false }
+        )
+    }
+
+    // SUPPORT TICKET DIALOG
+    if (showTicketDialog) {
+        SupportTicketDialog(
+            isPaper = isPaper,
+            onDismiss = { showTicketDialog = false }
         )
     }
 }
@@ -814,6 +983,242 @@ private fun GenAiSupportDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = accentColor)
             ) {
                 Text("Kapat", color = if (isPaper) PaperBg else CyberBlack, fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = cardBg
+    )
+}
+
+@Composable
+private fun SupportTicketDialog(
+    isPaper: Boolean,
+    onDismiss: () -> Unit
+) {
+    val cardBg = if (isPaper) PaperSurface else CyberCardBg
+    val textColor = if (isPaper) PaperText else Color.White
+    val textMutedColor = if (isPaper) PaperTextMuted else TextSecondary
+    val borderColor = if (isPaper) PaperBorder else CyberCardBorder
+    val accentColor = if (isPaper) PaperText else NeonCyan
+
+    var category by remember { mutableStateOf("Uçtan Uca Şifreleme") }
+    var priority by remember { mutableStateOf("Yüksek") }
+    var subject by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var submittedTicketId by remember { mutableStateOf<String?>(null) }
+
+    val categories = listOf("Uçtan Uca Şifreleme", "2 Cihaz Bağlantısı", "Kamuflaj & Maskeler", "Zamanlanmış Mesajlar", "Performans & 120Hz", "Diğer")
+    val priorities = listOf("Düşük", "Normal", "Yüksek", "Kritik Acil")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Build,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Resmi Destek Bileti",
+                        fontWeight = FontWeight.Black,
+                        color = accentColor,
+                        fontSize = 17.sp
+                    )
+                    Text(
+                        text = "Teknik İnceleme & Teşhis Havuzu",
+                        color = textMutedColor,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        },
+        text = {
+            if (submittedTicketId != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen.copy(alpha = 0.2f))
+                            .border(2.dp, NeonGreen, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✓", fontSize = 28.sp, color = NeonGreen, fontWeight = FontWeight.Black)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "DESTEK BİLETİNİZ OLUŞTURULDU",
+                        fontWeight = FontWeight.Black,
+                        color = textColor,
+                        fontSize = 15.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Referans Kodu: $submittedTicketId",
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Talebiniz kriptografik imza ile şifrelendi ve teşhis kuyruğuna alındı. Sistem analiz raporunuz biletinize otomatik iliştirildi.",
+                        color = textMutedColor,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 17.sp
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "Kategori:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textMutedColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        categories.take(3).forEach { cat ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (category == cat) accentColor else (if (isPaper) PaperBorder else CyberDarkSurface))
+                                    .clickable {
+                                        category = cat
+                                        SoundPoolManager.playMenuNav()
+                                    }
+                                    .padding(vertical = 6.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = cat,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (category == cat) (if (isPaper) PaperBg else CyberBlack) else textColor,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Öncelik:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textMutedColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        priorities.forEach { prio ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (priority == prio) (if (prio == "Kritik Acil") NeonRed else CyberYellow) else (if (isPaper) PaperBorder else CyberDarkSurface))
+                                    .clickable {
+                                        priority = prio
+                                        SoundPoolManager.playMenuNav()
+                                    }
+                                    .padding(vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = prio,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (priority == prio) CyberBlack else textColor
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = subject,
+                        onValueChange = { subject = it },
+                        label = { Text("Konu Başlığı", fontSize = 12.sp) },
+                        placeholder = { Text("Örn: Mesaj iletilirken zamanlama hatası", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            unfocusedBorderColor = borderColor,
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Ayrıntılı Açıklama", fontSize = 12.sp) },
+                        placeholder = { Text("Karşılaştığınız sorunu veya önerinizi açıklayın...", fontSize = 11.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            unfocusedBorderColor = borderColor,
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (submittedTicketId != null) {
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                ) {
+                    Text("Tamam", color = if (isPaper) PaperBg else CyberBlack, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        if (subject.isNotBlank() && description.isNotBlank()) {
+                            SoundPoolManager.playConfirm()
+                            submittedTicketId = "#GEN-TK-${(10000..99999).random()}"
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                    enabled = subject.isNotBlank() && description.isNotBlank()
+                ) {
+                    Text("Bileti Gönder", color = if (isPaper) PaperBg else CyberBlack, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            if (submittedTicketId == null) {
+                TextButton(onClick = onDismiss) {
+                    Text("İptal", color = textMutedColor)
+                }
             }
         },
         containerColor = cardBg

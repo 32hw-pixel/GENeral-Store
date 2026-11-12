@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -100,6 +103,18 @@ fun ChatWallpaperBackground(
                 }
                 ChatWallpaper.CARBON_TACTICAL -> {
                     CarbonTacticalWallpaper()
+                }
+                ChatWallpaper.EMERALD_MATRIX -> {
+                    EmeraldMatrixWallpaper()
+                }
+                ChatWallpaper.SUNSET_HORIZON -> {
+                    SunsetHorizonWallpaper()
+                }
+                ChatWallpaper.DEEP_SPACE_NEBULA -> {
+                    DeepSpaceNebulaWallpaper()
+                }
+                ChatWallpaper.AMOLED_PURE_BLACK -> {
+                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF000000)))
                 }
                 ChatWallpaper.PAPER_INK -> {
                     Box(modifier = Modifier.fillMaxSize().background(PaperBg))
@@ -230,6 +245,65 @@ private fun CarbonTacticalWallpaper() {
 }
 
 @Composable
+private fun EmeraldMatrixWallpaper() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF040E07))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val matrixColor = Color(0xFF00FF66).copy(alpha = 0.05f)
+            val step = 32.dp.toPx()
+            var x = 0f
+            while (x < size.width) {
+                drawLine(
+                    color = matrixColor,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 1.2f
+                )
+                x += step
+            }
+        }
+    }
+}
+
+@Composable
+private fun SunsetHorizonWallpaper() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1F0615),
+                        Color(0xFF330D14),
+                        Color(0xFF1A050A),
+                        Color(0xFF080205)
+                    )
+                )
+            )
+    )
+}
+
+@Composable
+private fun DeepSpaceNebulaWallpaper() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF1A103C),
+                        Color(0xFF09061A),
+                        Color(0xFF03020A)
+                    )
+                )
+            )
+    )
+}
+
+@Composable
 fun WallpaperSettingsDialog(
     onDismiss: () -> Unit
 ) {
@@ -279,7 +353,12 @@ fun WallpaperSettingsDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     text = "Siber Arka Plan Teması Seç:",
                     fontSize = 12.sp,
