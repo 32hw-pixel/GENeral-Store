@@ -1,0 +1,369 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account metadata owned strictly by the authenticated user. Timestamps use FieldValue.serverTimestamp().",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID matching document ID." },
+        "handle": { "type": "string", "description": "Unique lowercase public handle without leading @." },
+        "displayName": { "type": "string", "description": "User display name." },
+        "email": { "type": "string", "description": "Private Google email address (owner-read only)." },
+        "avatarEmoji": { "type": "string", "description": "Avatar emoji string." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp." }
+      },
+      "required": ["uid", "handle", "displayName", "createdAt", "updatedAt"]
+    },
+    "HandleEntry": {
+      "title": "HandleEntry",
+      "description": "PII-free public handle lookup entry allowing exact @handle resolution across devices.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "handle": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatarEmoji": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "handle", "displayName", "avatarEmoji", "createdAt", "updatedAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Cross-device direct or group conversation room scoped to participantIds.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "isGroup": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "participantNames": { "type": "object" },
+        "lastMessage": { "type": "string" },
+        "lastSenderId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "isGroup", "createdBy", "participantIds", "participantNames", "lastMessage", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual message inside a conversation with read receipts, timestamps, delete-for-everyone, and unlimited transfer metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "text": { "type": "string" },
+        "time": { "type": "string" },
+        "clientTimestampMs": { "type": "integer" },
+        "deliveredAtMs": { "type": "integer" },
+        "readBy": { "type": "array" },
+        "readAtMs": { "type": "integer" },
+        "isVoiceNote": { "type": "boolean" },
+        "voiceDurationSeconds": { "type": "integer" },
+        "attachmentType": { "type": "string" },
+        "attachmentName": { "type": "string" },
+        "attachmentUrl": { "type": "string" },
+        "attachmentSizeBytes": { "type": "integer" },
+        "attachmentMimeType": { "type": "string" },
+        "transferMode": { "type": "string" },
+        "chunkCount": { "type": "integer" },
+        "isEdited": { "type": "boolean" },
+        "isDeletedForEveryone": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "conversationId", "senderId", "senderName", "participantIds", "text", "time", "clientTimestampMs", "isVoiceNote", "voiceDurationSeconds", "isDeletedForEveryone", "createdAt", "updatedAt"]
+    },
+    "FileChunk": {
+      "title": "FileChunk",
+      "description": "Encoded file chunk slice belonging to a cloud-relayed attachment message.",
+      "type": "object",
+      "properties": {
+        "index": { "type": "integer" },
+        "totalChunks": { "type": "integer" },
+        "senderId": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "dataBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["index", "totalChunks", "senderId", "participantIds", "dataBase64", "createdAt"]
+    },
+    "WebRtcCall": {
+      "title": "WebRtcCall",
+      "description": "Real-time WebRTC audio/video call signaling session between two participants.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "callerId": { "type": "string" },
+        "callerName": { "type": "string" },
+        "calleeId": { "type": "string" },
+        "calleeName": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "isVideo": { "type": "boolean" },
+        "status": { "type": "string" },
+        "offerSdp": { "type": "string" },
+        "answerSdp": { "type": "string" },
+        "endedAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "callerId", "callerName", "calleeId", "calleeName", "participantIds", "isVideo", "status", "offerSdp", "createdAt", "updatedAt"]
+    },
+    "IceCandidateEntry": {
+      "title": "IceCandidateEntry",
+      "description": "WebRTC ICE network candidate exchanged via Firestore subcollections.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "sdpMid": { "type": "string" },
+        "sdpMLineIndex": { "type": "integer" },
+        "sdp": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "participantIds", "sdpMid", "sdpMLineIndex", "sdp", "createdAt"]
+    },
+    "DeviceLink": {
+      "title": "DeviceLink",
+      "description": "Linked browser/companion device pairing document owned by authenticated user.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "status": { "type": "string" },
+        "deviceName": { "type": "string" },
+        "platform": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "ownerUid", "status", "updatedAt"]
+    },
+    "ParentLink": {
+      "title": "ParentLink",
+      "description": "Age-gated parental supervision link shared strictly between childUid and parentUid.",
+      "type": "object",
+      "properties": {
+        "linkCode": { "type": "string" },
+        "childUid": { "type": "string" },
+        "parentUid": { "type": "string" },
+        "childAge": { "type": "integer" },
+        "dailyLimitMinutes": { "type": "integer" },
+        "usedMinutesToday": { "type": "integer" },
+        "contactsJson": { "type": "string" },
+        "screensJson": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["linkCode", "updatedAt"]
+    },
+    "BlockedUser": {
+      "title": "BlockedUser",
+      "description": "User blocklist entry stored under /users/{userId}/blocked/{blockedUid}.",
+      "type": "object",
+      "properties": {
+        "blockedUid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "handle": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["blockedUid", "displayName", "createdAt"]
+    },
+    "UserReport": {
+      "title": "UserReport",
+      "description": "Abuse/safety report submitted by an authenticated reporter.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reporterUid": { "type": "string" },
+        "targetUid": { "type": "string" },
+        "targetName": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "reporterUid", "targetUid", "reason", "createdAt"]
+    },
+    "KvkkRequest": {
+      "title": "KvkkRequest",
+      "description": "KVKK Article 11 data subject request (ACCESS, CORRECTION, DELETION, OBJECTION).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "requestType": { "type": "string" },
+        "details": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "requestType", "details", "status", "createdAt"]
+    },
+    "FileTransferSession": {
+      "title": "FileTransferSession",
+      "description": "WebRTC DataChannel peer-to-peer large file (1.5 GB - 4 GB+) signaling session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requesterUid": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "conversationId": { "type": "string" },
+        "messageId": { "type": "string" },
+        "fileId": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileSizeBytes": { "type": "integer" },
+        "status": { "type": "string" },
+        "offerSdp": { "type": "string" },
+        "answerSdp": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "requesterUid", "ownerUid", "participantIds", "conversationId", "messageId", "fileId", "fileName", "fileSizeBytes", "status", "offerSdp", "createdAt", "updatedAt"]
+    },
+    "ParentalControlConfig": {
+      "title": "ParentalControlConfig",
+      "description": "Owner-isolated parental control restrictions, verified parent email, and OTP verification state synced via Firebase.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "parentEmail": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "restrictionsEnabled": { "type": "boolean" },
+        "blockStrangerDms": { "type": "boolean" },
+        "forceProfanityFilter": { "type": "boolean" },
+        "dailyLimitMinutes": { "type": "integer" },
+        "codeHash": { "type": "string" },
+        "codeSalt": { "type": "string" },
+        "expiresAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "parentEmail", "isVerified", "restrictionsEnabled", "blockStrangerDms", "forceProfanityFilter", "dailyLimitMinutes", "codeHash", "codeSalt", "expiresAtMs", "createdAt", "updatedAt"]
+    },
+    "LiveLocationSession": {
+      "title": "LiveLocationSession",
+      "description": "Real-time GPS live location broadcast inside a conversation scoped to participantIds.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "accuracyMeters": { "type": "number" },
+        "label": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "expiresAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "conversationId", "senderId", "senderName", "participantIds", "latitude", "longitude", "accuracyMeters", "label", "isActive", "expiresAtMs", "createdAt", "updatedAt"]
+    },
+    "FeedbackReport": {
+      "title": "FeedbackReport",
+      "description": "KVKK-compliant structured user feedback, suggestion, and bug report designed for downstream product & quality analysis.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "category": { "type": "string", "description": "FEEDBACK, SUGGESTION, BUG, or PERFORMANCE" },
+        "severity": { "type": "string", "description": "LOW, MEDIUM, HIGH, or CRITICAL" },
+        "rating": { "type": "integer", "description": "1 to 5 star experience score" },
+        "moduleTag": { "type": "string", "description": "Target screen or module category for analytics grouping" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "description": "OPEN, IN_REVIEW, or RESOLVED" },
+        "appVersion": { "type": "string" },
+        "osVersion": { "type": "string" },
+        "clientTimestampMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "category", "severity", "rating", "moduleTag", "title", "description", "status", "appVersion", "osVersion", "clientTimestampMs", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user account documents."
+    },
+    "/users/{userId}/blocked/{blockedUid}": {
+      "schema": { "$ref": "#/entities/BlockedUser" },
+      "description": "User-owned blocked accounts list."
+    },
+    "/users/{userId}/parental_controls/{docId}": {
+      "schema": { "$ref": "#/entities/ParentalControlConfig" },
+      "description": "User-owned parental controls email verification & restriction rules."
+    },
+    "/handle_index/{handle}": {
+      "schema": { "$ref": "#/entities/HandleEntry" },
+      "description": "Public PII-free @handle lookup directory."
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Shared conversations accessible strictly to members in participantIds."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages with timestamps, read receipts, delete-for-everyone, and chunked transfer metadata."
+    },
+    "/conversations/{conversationId}/messages/{messageId}/chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/FileChunk" },
+      "description": "Async file chunks scoped to conversation participants."
+    },
+    "/conversations/{conversationId}/live_locations/{locationId}": {
+      "schema": { "$ref": "#/entities/LiveLocationSession" },
+      "description": "Real-time live GPS location sessions scoped to conversation participants."
+    },
+    "/calls/{callId}": {
+      "schema": { "$ref": "#/entities/WebRtcCall" },
+      "description": "WebRTC SDP signaling session documents."
+    },
+    "/calls/{callId}/callerCandidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/IceCandidateEntry" },
+      "description": "ICE candidates emitted by the caller."
+    },
+    "/calls/{callId}/calleeCandidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/IceCandidateEntry" },
+      "description": "ICE candidates emitted by the callee."
+    },
+    "/file_transfers/{transferId}": {
+      "schema": { "$ref": "#/entities/FileTransferSession" },
+      "description": "WebRTC DataChannel signaling sessions for cross-network 1.5 GB+ file transfers."
+    },
+    "/file_transfers/{transferId}/requesterCandidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/IceCandidateEntry" },
+      "description": "ICE candidates emitted by the file downloader."
+    },
+    "/file_transfers/{transferId}/ownerCandidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/IceCandidateEntry" },
+      "description": "ICE candidates emitted by the file host."
+    },
+    "/device_links/{code}": {
+      "schema": { "$ref": "#/entities/DeviceLink" },
+      "description": "Linked companion device pairing state owned by ownerUid."
+    },
+    "/parent_links/{linkCode}": {
+      "schema": { "$ref": "#/entities/ParentLink" },
+      "description": "Age-gated parental controls sync link."
+    },
+    "/user_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/UserReport" },
+      "description": "User abuse and safety reports."
+    },
+    "/kvkk_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/KvkkRequest" },
+      "description": "KVKK Article 11 data subject requests."
+    },
+    "/feedback_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/FeedbackReport" },
+      "description": "Analyzable user feedback, feature suggestions, and bug reports isolated by owner UID."
+    }
+  }
+}

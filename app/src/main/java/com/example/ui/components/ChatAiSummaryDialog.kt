@@ -74,15 +74,15 @@ fun ChatAiSummaryDialog(
         val hasVoice = messages.any { it.isVoiceNote }
         val hasMedia = messages.any { it.attachmentType != null }
 
-        summaryText = "$contactName ile gerçekleştirilen $count şifreli mesaj incelendi. İletişim tüneli stabil, güvenlik doğrulandı."
+        summaryText = "$contactName ile gerçekleştirilen $count mesaj incelendi. İletişim oturumu aktif, içerik analizi tamamlandı."
         keyPoints = listOf(
-            "Toplam $count adet uçtan uca şifreli veri paketi iletildi.",
-            if (hasVoice) "Frekans sinyaliyle iletilen sesli notlar ve mikrofon verileri doğrulandı." else "Metin tabanlı kriptografik aktarım sağlandı.",
-            if (hasMedia) "Güvenli tünel üzerinden doğrulanmış medya/dosya transferi yapıldı." else "Sohbet tüneli standart metin akışında kaldı."
+            "Toplam $count adet sohbet mesajı incelendi.",
+            if (hasVoice) "Kaydedilen sesli notlar ve süre bilgileri doğrulandı." else "Metin tabanlı sohbet akışı incelendi.",
+            if (hasMedia) "Sohbet içerisinde medya/dosya paylaşımı bulunuyor." else "Sohbet akışı metin odaklı ilerledi."
         )
         actionItems = listOf(
-            "Son konuşulan konular SHA-256 imzasıyla arşive hazırlandı.",
-            "Gerektiğinde 'Panik Butonu' ile sohbet izleri anında sıfırlanabilir."
+            "Özet metni SHA-256 sağlama bilgisiyle panoya kopyalanmaya hazır.",
+            "Gerektiğinde 'Panik Butonu' ile yerel görünüm anında gizlenebilir."
         )
     }
 
@@ -104,7 +104,7 @@ fun ChatAiSummaryDialog(
                 ) {
                     CircularProgressIndicator(color = CyberYellow, modifier = Modifier.size(36.dp))
                     Spacer(modifier = Modifier.height(14.dp))
-                    Text("Şifreli sohbet tüneli analiz ediliyor...", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Sohbet kayıtları analiz ediliyor...", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             } else {
                 Column(

@@ -379,6 +379,7 @@ fun MusicSettingsDialog(
                         trailingIcon = Icons.Default.FolderOpen,
                         onClick = {
                             SoundPoolManager.playMenuNav()
+                            com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
                             audioPickerLauncher.launch("audio/*")
                         }
                     )
@@ -628,23 +629,28 @@ fun MusicSettingsDialog(
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         filteredList.forEach { track ->
-                            val isCurrentPlaying = customTitle == track.title
+                            val isSelectedTrack = customTitle == track.title
+                            val isCurrentPlaying = isSelectedTrack && isPlaying
                             Card(
                                 onClick = {
                                     SoundPoolManager.playMechanicalClick()
-                                    BackgroundMusicManager.setCustomRoyaltyFreeTrack(
-                                        track.title,
-                                        track.isChill,
-                                        track.playbackSpeed,
-                                        track.playbackPitch
-                                    )
+                                    if (isSelectedTrack) {
+                                        BackgroundMusicManager.togglePlayPause()
+                                    } else {
+                                        BackgroundMusicManager.setCustomRoyaltyFreeTrack(
+                                            track.title,
+                                            track.isChill,
+                                            track.playbackSpeed,
+                                            track.playbackPitch
+                                        )
+                                    }
                                 },
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isCurrentPlaying) Color(0xFF142436) else (if (isPaper) PaperSurface else CyberBlack)
+                                    containerColor = if (isSelectedTrack) Color(0xFF142436) else (if (isPaper) PaperSurface else CyberBlack)
                                 ),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    if (isCurrentPlaying) NeonCyan else borderColor
+                                    if (isSelectedTrack) NeonCyan else borderColor
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -661,13 +667,13 @@ fun MusicSettingsDialog(
                                             modifier = Modifier
                                                 .size(32.dp)
                                                 .clip(CircleShape)
-                                                .background(if (isCurrentPlaying) NeonCyan else CyberCardBorder),
+                                                .background(if (isSelectedTrack) NeonCyan else CyberCardBorder),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = if (isCurrentPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                                 contentDescription = null,
-                                                tint = if (isCurrentPlaying) CyberBlack else Color.White,
+                                                tint = if (isSelectedTrack) CyberBlack else Color.White,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -675,7 +681,7 @@ fun MusicSettingsDialog(
                                         Column {
                                             Text(
                                                 text = track.title,
-                                                color = if (isCurrentPlaying) NeonCyan else textColor,
+                                                color = if (isSelectedTrack) NeonCyan else textColor,
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1,
@@ -700,16 +706,20 @@ fun MusicSettingsDialog(
                                             )
                                         },
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isCurrentPlaying) NeonCyan else (if (isPaper) PaperBorder else CyberCardBorder)
+                                            containerColor = if (isSelectedTrack) NeonCyan else (if (isPaper) PaperBorder else CyberCardBorder)
                                         ),
                                         modifier = Modifier.height(28.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = if (isCurrentPlaying) "Aktif 🔊" else "Seç",
+                                            text = when {
+                                                isCurrentPlaying -> "Çalıyor 🔊"
+                                                isSelectedTrack -> "Seçildi ⏸"
+                                                else -> "Seç"
+                                            },
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isCurrentPlaying) CyberBlack else textColor
+                                            color = if (isSelectedTrack) CyberBlack else textColor
                                         )
                                     }
                                 }

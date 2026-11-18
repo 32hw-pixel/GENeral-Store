@@ -66,6 +66,7 @@ fun GateScreen(
     onRegister: () -> Unit,
     onLogin: () -> Unit,
     onGuest: () -> Unit,
+    onGoogleSignIn: (() -> Unit)? = null,
     onWipeData: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -129,7 +130,7 @@ fun GateScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "İster tamamen kendi bulut hesabını oluşturup kalıcı ol, ister iz bırakmadan misafir olarak gir.",
+                    text = "Farklı cihaz ve internet ağlarından TLS korumalı gerçek zamanlı mesajlaşmak için Google ile bağlanabilir veya hesapsız olarak GEN AI ve cihaz içi 'Siz' notlarını kullanabilirsin.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                     textAlign = TextAlign.Center,
@@ -137,7 +138,21 @@ fun GateScreen(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (onGoogleSignIn != null) {
+                    CyberTechButton(
+                        text = "[ GOOGLE İLE BAĞLAN (İNTERNET SOHBETİ) ]",
+                        containerColor = Color(0xFF262000),
+                        contentColor = com.example.ui.theme.CyberYellow,
+                        borderColor = com.example.ui.theme.CyberYellow,
+                        icon = Icons.Default.Shield,
+                        onClick = onGoogleSignIn,
+                        testTag = "gate_google_signin_button"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 // Primary Option 1: Create Account
                 CyberTechButton(
@@ -165,14 +180,14 @@ fun GateScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Option 3: Guest Mode
+                // Option 3: Local GEN AI & Private "Siz" Notes without cloud account
                 CyberTechButton(
-                    text = "[ MİSAFİR OLARAK GİR (ANONİM) ]",
+                    text = "[ HESAPSIZ DEVAM ET (GEN AI & SİZ) ]",
                     containerColor = Color(0xFF0F2B1D),
                     contentColor = NeonGreen,
                     borderColor = NeonGreen,
                     icon = Icons.Default.Fingerprint,
-                    onClick = onGuest,
+                    onClick = { onGuest() },
                     testTag = "gate_guest_button"
                 )
 
@@ -196,7 +211,7 @@ fun GateScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "SHA-256 & Uçtan Uca Şifreli Operasyon",
+                            text = "TLS & SHA-256 Korumalı İletişim",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )

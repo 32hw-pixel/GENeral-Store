@@ -148,7 +148,7 @@ fun GeminiAiHistoryDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Gemini AI Konuşma Geçmişi",
+                                text = "GEN AI Konuşma Geçmişi",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 color = if (isPaper) Color(0xFF1E1C1A) else Color.White

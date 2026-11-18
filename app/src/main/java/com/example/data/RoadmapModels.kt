@@ -55,15 +55,3 @@ data class PanicConfig(
     val wipeHistoryOnPanic: Boolean = true
 )
 
-data class PollOption(
-    val id: Int,
-    val text: String,
-    var votes: Int
-)
-
-data class ChannelPoll(
-    val id: String,
-    val question: String,
-    val options: List<PollOption>,
-    var userVotedOptionId: Int? = null
-)

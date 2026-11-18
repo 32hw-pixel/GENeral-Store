@@ -2,26 +2,26 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Sarı-Siyah (Yellow-Black) Cyber Palette matching user reference
-val CyberYellow = Color(0xFFF5C400)
-val CyberYellowLight = Color(0xFFFFD54F)
-val CyberYellowContainer = Color(0xFF262000)
-val CyberBlack = Color(0xFF0A0A0A)
-val CyberDarkSurface = Color(0xFF141414)
-val CyberCardBg = Color(0xFF181818)
-val CyberCardBorder = Color(0xFF282828)
+// Canlı Sarı-Siyah (Vibrant Yellow-Black) Cyber Palette
+val CyberYellow = Color(0xFFFFD600)
+val CyberYellowLight = Color(0xFFFFEA00)
+val CyberYellowContainer = Color(0xFF2B2300)
+val CyberBlack = Color(0xFF06080D)
+val CyberDarkSurface = Color(0xFF0D121D)
+val CyberCardBg = Color(0xFF131A29)
+val CyberCardBorder = Color(0xFF28354D)
 
-val NeonYellow = Color(0xFFF5C400)
-val NeonCyan = Color(0xFF00E5FF)
-val NeonCyanVariant = Color(0xFF00B4D8)
-val NeonPurple = Color(0xFFA855F7)
-val NeonPink = Color(0xFFFF2A6D)
-val NeonGreen = Color(0xFF00E676)
-val NeonRed = Color(0xFFFF4444)
+val NeonYellow = Color(0xFFFFD600)
+val NeonCyan = Color(0xFF00F0FF)
+val NeonCyanVariant = Color(0xFF00B8E6)
+val NeonPurple = Color(0xFFB366FF)
+val NeonPink = Color(0xFFFF3377)
+val NeonGreen = Color(0xFF00F59B)
+val NeonRed = Color(0xFFFF4D4D)
 
 val TextPrimary = Color(0xFFFFFFFF)
-val TextSecondary = Color(0xFF9E9E9E)
-val TextMuted = Color(0xFF6E6E6E)
+val TextSecondary = Color(0xFFC2CAD8)
+val TextMuted = Color(0xFF93A0B8)
 
 // Paper Mode (E-Ink) Palette
 val PaperBg = Color(0xFFF2EFE9)

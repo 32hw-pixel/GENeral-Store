@@ -1,0 +1,19 @@
+{
+  "name": "GENeral Chat",
+  "short_name": "GENeral Chat",
+  "description": "GENeral Chat Pro: Siberpunk estetiği, Kağıt Ekran (E-Ink), panik maskesi ve çapraz tarayıcı uyumlu erişilebilir iletişim arayüzü.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#F5C400",
+  "orientation": "any",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230A0A0A'/%3E%3Cpath d='M96 28L40 52v44c0 38 24 68 56 76 32-8 56-38 56-76V52L96 28z' fill='none' stroke='%23F5C400' stroke-width='12'/%3E%3Ctext x='96' y='112' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='44' fill='%23F5C400'%3EGEN%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -50,10 +50,14 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.util.PrivacyPreferencesManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,6 +92,7 @@ fun ContactProfileDialog(
     onToggleMute: (Boolean) -> Unit,
     onExportChat: () -> Unit,
     onClearChat: () -> Unit,
+    onReportUser: ((reason: String, onComplete: (Result<String>) -> Unit) -> Unit)? = null,
     onDismiss: () -> Unit,
     isPaper: Boolean
 ) {
@@ -96,6 +101,10 @@ fun ContactProfileDialog(
     var showEditNameModal by remember { mutableStateOf(false) }
     var editNameInput by remember { mutableStateOf(customName) }
     var showReportModal by remember { mutableStateOf(false) }
+    val privacyRev by PrivacyPreferencesManager.revision.collectAsState()
+    val privacyConfig = remember(privacyRev, conversation.id) {
+        PrivacyPreferencesManager.getChatConfig(context, conversation.id)
+    }
 
     val resolvedUserId = conversation.username ?: "@id_${conversation.id.takeLast(6)}"
 
@@ -144,12 +153,21 @@ fun ContactProfileDialog(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = conversation.avatarEmoji ?: conversation.initials,
-                        fontSize = if (conversation.avatarEmoji != null) 36.sp else 26.sp,
-                        fontWeight = FontWeight.Black,
-                        color = if (isPaper) Color(0xFF2B2824) else CyberYellow
-                    )
+                    if (!conversation.logoUri.isNullOrBlank()) {
+                        AsyncImage(
+                            model = conversation.logoUri,
+                            contentDescription = customName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(80.dp).clip(CircleShape)
+                        )
+                    } else {
+                        Text(
+                            text = conversation.avatarEmoji ?: conversation.initials,
+                            fontSize = if (conversation.avatarEmoji != null) 36.sp else 26.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isPaper) Color(0xFF2B2824) else CyberYellow
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -230,7 +248,7 @@ fun ContactProfileDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // E2EE Security Badge
+                // Transport & Session Security Badge
                 Card(
                     colors = CardDefaults.cardColors(containerColor = if (isPaper) Color(0xFFE5DFC9) else Color(0xFF0D1B2A)),
                     border = BorderStroke(1.dp, NeonGreen.copy(alpha = 0.5f)),
@@ -245,13 +263,13 @@ fun ContactProfileDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Uçtan Uca Şifreli (E2EE) Doğrulandı",
+                                text = "TLS Aktarım & Bulut Hesap Doğrulandı",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeonGreen
                             )
                             Text(
-                                text = "Parmak İzi: SHA256-${resolvedUserId.hashCode().toString(16).uppercase().take(12)}",
+                                text = "Kimlik Referansı: $resolvedUserId · WebRTC DTLS-SRTP arama koruması",
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 9.sp,
                                 color = textMutedColor
@@ -295,19 +313,111 @@ fun ContactProfileDialog(
                         )
                     }
 
-                    // Export Chat Button
+                    // Advanced Chat Privacy Panel (Gelişmiş Sohbet Gizliliği)
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (privacyConfig.advancedPrivacyEnabled) Color(0xFF151226) else (if (isPaper) Color(0xFFECE6DA) else Color(0xFF141414))
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (privacyConfig.advancedPrivacyEnabled) NeonCyan else borderColor.copy(alpha = 0.4f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = if (privacyConfig.advancedPrivacyEnabled) NeonCyan else accentColor, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text("Gelişmiş Sohbet Gizliliği", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor)
+                                        Text("Ekran yakalama, dışa aktarma ve AI erişimini kapat", fontSize = 10.sp, color = textMutedColor)
+                                    }
+                                }
+                                Switch(
+                                    checked = privacyConfig.advancedPrivacyEnabled,
+                                    onCheckedChange = { enabled ->
+                                        SoundPoolManager.playMechanicalClick()
+                                        PrivacyPreferencesManager.toggleMasterPrivacy(context, conversation.id, enabled)
+                                        Toast.makeText(
+                                            context,
+                                            if (enabled) "Gelişmiş Sohbet Gizliliği aktifleştirildi." else "Gelişmiş Sohbet Gizliliği kapatıldı.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    colors = SwitchDefaults.colors(checkedThumbColor = NeonCyan)
+                                )
+                            }
+
+                            if (privacyConfig.advancedPrivacyEnabled) {
+                                HorizontalDivider(color = borderColor.copy(alpha = 0.25f))
+                                listOf(
+                                    Triple("Ekran görüntüsü ve kayıt kilidi (FLAG_SECURE)", privacyConfig.blockScreenCapture) { v: Boolean ->
+                                        PrivacyPreferencesManager.setChatConfig(context, conversation.id, privacyConfig.copy(blockScreenCapture = v))
+                                    },
+                                    Triple("Dışa aktarma ve iletme engeli", privacyConfig.blockExportAndForward) { v: Boolean ->
+                                        PrivacyPreferencesManager.setChatConfig(context, conversation.id, privacyConfig.copy(blockExportAndForward = v))
+                                    },
+                                    Triple("Otomatik galeri/medya kaydını engelle", privacyConfig.blockAutoMediaSave) { v: Boolean ->
+                                        PrivacyPreferencesManager.setChatConfig(context, conversation.id, privacyConfig.copy(blockAutoMediaSave = v))
+                                    },
+                                    Triple("GEN AI asistan bağlamından gizle", privacyConfig.excludeFromAi) { v: Boolean ->
+                                        PrivacyPreferencesManager.setChatConfig(context, conversation.id, privacyConfig.copy(excludeFromAi = v))
+                                    }
+                                ).forEach { (label, checked, onChange) ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(label, fontSize = 10.sp, color = textMutedColor, modifier = Modifier.weight(1f))
+                                        Switch(
+                                            checked = checked,
+                                            onCheckedChange = {
+                                                SoundPoolManager.playMechanicalClick()
+                                                onChange(it)
+                                            },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = NeonGreen)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Export Chat Button (guarded by Gelişmiş Sohbet Gizliliği)
+                    val exportLocked = privacyConfig.blockExportAndForward || privacyConfig.advancedPrivacyEnabled
                     OutlinedButton(
                         onClick = {
                             SoundPoolManager.playMechanicalClick()
-                            onExportChat()
+                            if (exportLocked) {
+                                Toast.makeText(context, "Gelişmiş Sohbet Gizliliği aktif: Dışa aktarma kilitli.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                onExportChat()
+                            }
                         },
+                        enabled = !exportLocked,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, borderColor)
+                        border = BorderStroke(1.dp, if (exportLocked) NeonRed.copy(alpha = 0.4f) else borderColor)
                     ) {
-                        Icon(Icons.Default.Download, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                        Icon(
+                            imageVector = if (exportLocked) Icons.Default.Lock else Icons.Default.Download,
+                            contentDescription = null,
+                            tint = if (exportLocked) NeonRed else NeonCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sohbeti Dışa Aktar (E2EE / TXT)", color = textColor, fontSize = 12.sp)
+                        Text(
+                            text = if (exportLocked) "Dışa Aktarma Kilitli (Gelişmiş Gizlilik)" else "Sohbeti Dışa Aktar (Yerel Kasa / TXT)",
+                            color = if (exportLocked) NeonRed else textColor,
+                            fontSize = 12.sp
+                        )
                     }
 
                     // Block / Unblock Contact Button
@@ -473,13 +583,32 @@ fun ContactProfileDialog(
             confirmButton = {
                 Button(
                     onClick = {
+                        val callback = onReportUser
                         showReportModal = false
                         SoundPoolManager.playNotification()
-                        Toast.makeText(
-                            context,
-                            "Şikayetiniz iletildi (Kayıt #REP-${System.currentTimeMillis().toString().takeLast(6)}). Ekibimiz inceleyecektir.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        if (callback != null) {
+                            callback(reportReason) { res ->
+                                res.onSuccess { reportId ->
+                                    Toast.makeText(
+                                        context,
+                                        "Şikayet bulut veritabanına kaydedildi (Kayıt No: $reportId).",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }.onFailure { err ->
+                                    Toast.makeText(
+                                        context,
+                                        err.localizedMessage ?: "Şikayet iletilemedi; lütfen Google oturumunu kontrol edin.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Sunucu şikayeti için Google hesabıyla giriş yapılmış bir bulut sohbeti gereklidir.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = NeonRed)
                 ) {

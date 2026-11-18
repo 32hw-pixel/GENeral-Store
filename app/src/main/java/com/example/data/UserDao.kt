@@ -43,6 +43,9 @@ interface UserDao {
     @Query("UPDATE users SET lastLoginAt = :timestamp WHERE id = :id")
     suspend fun updateLastLogin(id: Long, timestamp: Long)
 
+    @Query("UPDATE users SET fullName = :fullName WHERE id = :id")
+    suspend fun updateUserFullName(id: Long, fullName: String): Int
+
     @Insert
     suspend fun insertResetCode(code: PasswordResetCode): Long
 

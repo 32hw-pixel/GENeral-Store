@@ -63,6 +63,10 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -145,7 +149,7 @@ fun CamouflageMaskScreen(
                         modifier = Modifier.clickable { handleSecretTap() }
                     ) {
                         Text(
-                            text = if (isInSelectorMode) "Gizlilik Maskeleri & İkon Yönetimi" else currentMask.title,
+                            text = if (isInSelectorMode) "Gizlilik Maskeleri & Ekran Kalkanı" else currentMask.title,
                             fontWeight = FontWeight.Bold,
                             fontSize = 17.sp,
                             color = if (isPaper) PaperText else Color.White
@@ -189,11 +193,15 @@ fun CamouflageMaskScreen(
                             )
                         }
                     }
-                    // Secret corner exit
+                    // Secret corner exit (minimum 48dp accessible touch target)
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Gizli çıkış, GENeral Chat sohbetine dön"
+                            }
                             .clickable {
                                 SoundPoolManager.playShakeOverride()
                                 onSecretExit()
@@ -205,7 +213,7 @@ fun CamouflageMaskScreen(
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(if (isPaper) PaperTextMuted else Color.Gray.copy(alpha = 0.4f))
+                                .background(if (isPaper) PaperTextMuted else Color.Gray.copy(alpha = 0.65f))
                         )
                     }
                 },
@@ -230,7 +238,7 @@ fun CamouflageMaskScreen(
                     onSelectMask = { selected ->
                         currentMask = selected
                         DisguiseManager.activateMask(context, selected)
-                        Toast.makeText(context, "${selected.title} başlatıcı ikonu ve adı aktifleştirildi", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "${selected.title} ekran koruma maskesi aktifleştirildi", Toast.LENGTH_SHORT).show()
                         isInSelectorMode = false
                     },
                     onApplyAiDisguise = { aiDisguise ->
@@ -406,7 +414,7 @@ fun MaskSelectorAndAiDesigner(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Bir maske seçtiğinizde uygulama ikonu ve launcher adı o yardımcı araca dönüşür.",
+                text = "Bir maske seçtiğinizde ekran görünümü geçici olarak o yardımcı araca dönüşür (Sistem ikonu ve GENeral Chat adı korunur).",
                 fontSize = 12.sp,
                 color = if (isPaper) PaperTextMuted else TextSecondary
             )
@@ -646,7 +654,7 @@ fun MaskSelectorAndAiDesigner(
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("BU MASKELİ BAŞLATICIYI AKTİFLEŞTİR", fontWeight = FontWeight.Black, color = CyberBlack)
+                                    Text("BU EKRAN MASKESİNİ AKTİFLEŞTİR", fontWeight = FontWeight.Black, color = CyberBlack)
                                 }
                             }
                         }
@@ -664,7 +672,8 @@ fun MaskSelectorAndAiDesigner(
 private fun EncryptedChatExportTab(isPaper: Boolean) {
     val context = LocalContext.current
     var exportAll by remember { mutableStateOf(true) }
-    var passphrase by remember { mutableStateOf("GENERAL_CHAT_MASTER_E2EE") }
+    var passphrase by remember { mutableStateOf("") }
+    var exportError by remember { mutableStateOf<String?>(null) }
     var exportResult by remember { mutableStateOf<VaultExportResult?>(null) }
     var isExporting by remember { mutableStateOf(false) }
 
@@ -714,7 +723,7 @@ private fun EncryptedChatExportTab(isPaper: Boolean) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Konuşmalarınızı askeri düzeyde AES-256-CBC algoritması ve SHA-256 sağlama toplamı ile şifreleyerek cihazınızın yerel depolama alanına metin dosyası olarak aktarır. Dosya yalnızca belirlediğiniz parola ile çözülebilir.",
+                        text = "Konuşmalarınızı AES-256-CBC algoritması ve SHA-256 sağlama toplamı ile şifreleyerek cihazınızın yerel depolama alanına metin dosyası olarak aktarır. Dosya yalnızca belirlediğiniz parola ile çözülebilir.",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isPaper) PaperTextMuted else TextSecondary,
                         lineHeight = 17.sp
@@ -723,7 +732,7 @@ private fun EncryptedChatExportTab(isPaper: Boolean) {
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "ŞİFRELEME PAROLASI (MASTER KEY)",
+                        text = "ŞİFRELEME PAROLASI (EN AZ 6 KARAKTER)",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isPaper) PaperText else CyberYellow
@@ -733,9 +742,13 @@ private fun EncryptedChatExportTab(isPaper: Boolean) {
 
                     OutlinedTextField(
                         value = passphrase,
-                        onValueChange = { passphrase = it },
-                        placeholder = { Text("Güvenlik parolası belirleyin...", color = TextMuted) },
+                        onValueChange = {
+                            passphrase = it
+                            exportError = null
+                        },
+                        placeholder = { Text("En az 6 karakterlik parola girin...", color = TextMuted) },
                         singleLine = true,
+                        isError = exportError != null,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = if (isPaper) PaperText else CyberYellow,
                             unfocusedBorderColor = if (isPaper) PaperBorder else CyberCardBorder,
@@ -747,12 +760,28 @@ private fun EncryptedChatExportTab(isPaper: Boolean) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    exportError?.let { err ->
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = err,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFFF5252)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Button(
                         onClick = {
+                            val cleanPass = passphrase.trim()
+                            if (cleanPass.length < 6) {
+                                exportError = "Güvenlik için en az 6 karakterlik şifreleme parolası belirleyin."
+                                return@Button
+                            }
                             SoundPoolManager.playConfirm()
                             isExporting = true
+                            exportError = null
 
                             val messageList = mutableListOf<Pair<String, String>>()
                             defaultConversations.forEach { conv ->
@@ -761,21 +790,25 @@ private fun EncryptedChatExportTab(isPaper: Boolean) {
                                 }
                             }
 
-                            val result = EncryptedVaultUtil.encryptTranscript(
-                                context = context,
-                                chatTitle = "GENeral Chat Tüm Sohbet Arşivi (10 Gizlilik Kalkanı)",
-                                messages = messageList,
-                                passphrase = passphrase.ifBlank { "GENERAL_CHAT_MASTER_E2EE" }
-                            )
-
-                            exportResult = result
-                            isExporting = false
-
-                            InstantNotificationManager.show(
-                                title = "Sohbet Kaydı Şifrelendi",
-                                message = "AES-256 şifreli metin dosyası oluşturuldu (${result.messageCount} mesaj).",
-                                iconEmoji = "🔒"
-                            )
+                            runCatching {
+                                EncryptedVaultUtil.encryptTranscript(
+                                    context = context,
+                                    chatTitle = "GENeral Chat Tüm Sohbet Arşivi (Gizlilik Kalkanı)",
+                                    messages = messageList,
+                                    passphrase = cleanPass
+                                )
+                            }.onSuccess { result ->
+                                exportResult = result
+                                isExporting = false
+                                InstantNotificationManager.show(
+                                    title = "Sohbet Kaydı Şifrelendi",
+                                    message = "AES-256 şifreli metin dosyası oluşturuldu (${result.messageCount} mesaj).",
+                                    iconEmoji = "🔒"
+                                )
+                            }.onFailure { err ->
+                                isExporting = false
+                                exportError = err.localizedMessage ?: "Şifreleme sırasında hata oluştu."
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isPaper) PaperText else CyberYellow

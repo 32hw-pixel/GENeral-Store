@@ -115,48 +115,55 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(CyberBlack)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF070B12), Color(0xFF0E1626), Color(0xFF06090F))
+                )
+            )
             .clickable { onFinished() }
             .testTag("splash_screen"),
         contentAlignment = Alignment.Center
     ) {
-        // Subtle cyber matrix scanlines background
+        // Soft ambient radial highlights
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-
-            // Sweeping neon beam
-            val currentBeamY = scanlineY * canvasHeight
-            drawLine(
-                color = NeonCyan.copy(alpha = 0.25f),
-                start = Offset(0f, currentBeamY),
-                end = Offset(canvasWidth, currentBeamY),
-                strokeWidth = 3f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(CyberYellow.copy(alpha = 0.14f), Color.Transparent),
+                    center = Offset(size.width * 0.25f, size.height * 0.22f),
+                    radius = size.width * 0.55f
+                ),
+                center = Offset(size.width * 0.25f, size.height * 0.22f),
+                radius = size.width * 0.55f
             )
-
-            // Horizontal grid lines
-            val step = 40f
-            var y = 0f
-            while (y < canvasHeight) {
-                drawLine(
-                    color = Color(0xFF16233B).copy(alpha = 0.2f),
-                    start = Offset(0f, y),
-                    end = Offset(canvasWidth, y),
-                    strokeWidth = 1f
-                )
-                y += step
-            }
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(NeonCyan.copy(alpha = 0.12f), Color.Transparent),
+                    center = Offset(size.width * 0.80f, size.height * 0.78f),
+                    radius = size.width * 0.65f
+                ),
+                center = Offset(size.width * 0.80f, size.height * 0.78f),
+                radius = size.width * 0.65f
+            )
+            val currentBeamY = scanlineY * size.height
+            drawLine(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, NeonCyan.copy(alpha = 0.28f), Color.Transparent)
+                ),
+                start = Offset(0f, currentBeamY),
+                end = Offset(size.width, currentBeamY),
+                strokeWidth = 2.dp.toPx()
+            )
         }
 
-        // Ambient radial background glow
+        // Ambient radial center glow
         Box(
             modifier = Modifier
-                .size(340.dp)
+                .size(300.dp)
                 .scale(pulseGlow)
-                .alpha(0.22f)
+                .alpha(0.24f)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(NeonCyan, NeonPurple, Color.Transparent)
+                        colors = listOf(CyberYellow, NeonCyan, Color.Transparent)
                     ),
                     shape = CircleShape
                 )
@@ -166,50 +173,54 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(24.dp)
+                .padding(28.dp)
                 .alpha(contentAlpha.value)
         ) {
-            // Authentic Yellow Squircle "G" Logo with Rotating Subtle Cyber Ring
+            // Modern Squircle Logo with Clean Halo Orbit
             Box(
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(136.dp)
                     .scale(scale.value),
                 contentAlignment = Alignment.Center
             ) {
-                // Subtle yellow orbit ring
                 Box(
                     modifier = Modifier
-                        .size(126.dp)
+                        .size(132.dp)
                         .rotate(ringRotation)
                         .border(
-                            width = 1.5.dp,
+                            width = 2.dp,
                             brush = Brush.sweepGradient(
-                                listOf(CyberYellow, Color.Transparent, CyberYellow.copy(alpha = 0.5f), Color.Transparent, CyberYellow)
+                                listOf(CyberYellow, NeonCyan.copy(alpha = 0.6f), Color.Transparent, CyberYellow)
                             ),
                             shape = CircleShape
                         )
                 )
 
-                GeneralChatLogo(size = 90.dp)
+                GeneralChatLogo(size = 92.dp)
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-            // Main Brand Title with Cyberpunk Glitch Effect
-            GlitchCyberText(
+            Text(
                 text = "GENeral Chat",
-                fontSize = 34.sp,
+                style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp,
-                baseColor = Color.White
+                letterSpacing = 0.8.sp,
+                color = Color.White,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Version and operation status
+            // Modern Status Pill
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -219,56 +230,39 @@ fun SplashScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "v7.7.3 PRO // OPERASYON BAŞLATILIYOR",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = NeonCyan,
-                    letterSpacing = 2.sp
+                    text = "v7.7.3 Pro · Anlık ve Güvenli İletişim",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFCBD5E1)
                 )
             }
 
-            Spacer(modifier = Modifier.height(38.dp))
+            Spacer(modifier = Modifier.height(34.dp))
 
-            // Iconic Slogan with Chromatic Aberration Glitch & Cyber Brackets
+            // Sleek Glassmorphic Slogan Card
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF081220))
-                    .border(1.5.dp, NeonCyan.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 22.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(Color(0xFF121C2E), Color(0xFF0E1626))
+                        )
+                    )
+                    .border(1.dp, CyberYellow.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 24.dp, vertical = 14.dp)
                     .testTag("splash_glitch_slogan")
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "[ ",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeonCyan
-                    )
-
-                    GlitchCyberText(
-                        text = "BAĞLANTIDA KAL.",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 5.sp,
-                        baseColor = NeonCyan
-                    )
-
-                    Text(
-                        text = " ]",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeonCyan
-                    )
-                }
+                Text(
+                    text = "BAĞLANTIDA KAL.",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.sp,
+                    color = CyberYellow
+                )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-            // Audio Frequency Spectrum Visualizer Bars (Bölüm 1 & 10: Siberpunk Ses Mimarisi)
             CyberFrequencyBars()
         }
     }

@@ -80,13 +80,13 @@ fun ExportChatDialog(
         val dateHeader = SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale("tr")).format(Date())
         val sb = StringBuilder()
         sb.appendLine("==================================================")
-        sb.appendLine("GENeral Chat v7.7.3 Pro - Güvenli Sohbet Dökümü")
-        sb.appendLine("Uçtan Uca Şifreli Hat (E2EE / SHA-256 İmzalı)")
+        sb.appendLine("GENeral Chat v7.7.3 Pro - Sohbet Dökümü")
+        sb.appendLine("TLS Aktarım & SHA-256 Sağlama Kaydı")
         sb.appendLine("==================================================")
         sb.appendLine("Sohbet Ortağı : ${conversation.name} (${conversation.username ?: "@id"})")
         sb.appendLine("Dışa Aktarma Tarihi : $dateHeader")
         sb.appendLine("Toplam Mesaj Sayısı : ${messages.size}")
-        sb.appendLine("Protokol            : AES-256-GCM / Donanım Hızlandırmalı")
+        sb.appendLine("Biçim               : Düz Metin Dökümü (.txt)")
         sb.appendLine("--------------------------------------------------\n")
 
         messages.forEach { m ->
@@ -144,7 +144,7 @@ fun ExportChatDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Konuşma geçmişi E2EE ve zaman damgalı formatta dışa aktarılmaya hazır:",
+                    text = "Konuşma geçmişi zaman damgalı düz metin formatında dışa aktarılmaya hazır:",
                     fontSize = 12.sp,
                     color = textMutedColor
                 )

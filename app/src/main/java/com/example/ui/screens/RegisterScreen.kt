@@ -67,6 +67,7 @@ fun RegisterScreen(
 
     val username by viewModel.registerUsername.collectAsState()
     val fullName by viewModel.registerFullName.collectAsState()
+    val ageInput by viewModel.registerAge.collectAsState()
     val email by viewModel.registerEmail.collectAsState()
     val password by viewModel.registerPassword.collectAsState()
     val confirmPassword by viewModel.registerConfirmPassword.collectAsState()
@@ -200,6 +201,20 @@ fun RegisterScreen(
                 testTag = "register_fullname_input",
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            AuthTextField(
+                value = ageInput,
+                onValueChange = { raw -> viewModel.registerAge.value = raw.filter { it.isDigit() }.take(3) },
+                label = "Yaşınız (Örn: 18 · 18 altı için Ebeveyn Denetimi açılır)",
+                leadingIcon = Icons.Default.Person,
+                testTag = "register_age_input",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next
                 )
             )

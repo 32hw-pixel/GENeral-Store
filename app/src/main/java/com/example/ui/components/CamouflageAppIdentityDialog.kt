@@ -95,8 +95,8 @@ fun CamouflageAppIdentityDialog(
                 Icon(Icons.Default.Shield, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text("Uygulama İkonu & İsim Özelleştirme", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Kamuflaj Kimliği ve GEN AI Siber Tasarım", color = CyberYellow, fontSize = 10.sp)
+                    Text("Ekran Maskesi & Başlık Özelleştirme", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Uygulama İçi Kamuflaj Görünümü", color = CyberYellow, fontSize = 10.sp)
                 }
             }
         },
@@ -115,7 +115,7 @@ fun CamouflageAppIdentityDialog(
                         Icon(Icons.Default.Info, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Yasal & Sistem Güvencesi: Android 'Uygulamaları Yönet' ve 'Ultra Pil Tasarrufu' sistemlerinde uygulamanız resmi 'GENeral Chat' adıyla güvende kalır. Buradaki kamuflaj başlatıcı arayüzde geçerlidir.",
+                            text = "Şeffaflık Bildirimi: Android sistem ikonu ve resmi uygulama adı her zaman 'GENeral Chat' olarak korunur. Buradaki seçim yalnızca uygulama içi başlık ve ekran maskesi görünümünü değiştirir.",
                             color = NeonGreen,
                             fontSize = 10.sp,
                             lineHeight = 14.sp
@@ -148,12 +148,11 @@ fun CamouflageAppIdentityDialog(
                         onClick = {
                             SoundPoolManager.playMechanicalClick()
                             isGeneratingByAi = true
-                            // Simulate GEN AI generation
-                            val aiNames = listOf("Nexus Ghost Protocol", "Siber Frekans", "AES Kara Kutu", "Zero-Trace Messenger", "CyberPulse Pro")
-                            val aiEmojis = listOf("🛡️", "🌌", "⚡", "🛰️", "🕶️")
+                            val presetNames = listOf("Not Defteri", "Hava Durumu", "Hesap Makinesi", "Kronometre", "SiberPulse")
+                            val presetEmojis = listOf("📝", "⛅", "🔢", "⏱️", "⚡")
                             val idx = (0..4).random()
-                            customName = aiNames[idx]
-                            selectedEmoji = aiEmojis[idx]
+                            customName = presetNames[idx]
+                            selectedEmoji = presetEmojis[idx]
                             isGeneratingByAi = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
@@ -161,7 +160,7 @@ fun CamouflageAppIdentityDialog(
                     ) {
                         Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("GEN AI", color = CyberBlack, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                        Text("Öner", color = CyberBlack, fontWeight = FontWeight.Black, fontSize = 11.sp)
                     }
                 }
 

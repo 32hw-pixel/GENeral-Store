@@ -85,58 +85,58 @@ data class LenovoFeatureCard(
 val lenovoFeatures = listOf(
     LenovoFeatureCard(
         id = "ips_display",
-        categoryBadge = "EKRAN TEKNOLOJİSİ",
-        turkishTitle = "IPS Yüksek Canlılıkta Ekran & Kağıt Modu",
-        subtitle = "178° geniş görüş açısı, canlı renk gamutu & Kağıt Ekran (Paper Mode) göz koruma polarizasyonu.",
+        categoryBadge = "ARAYÜZ & TEMA",
+        turkishTitle = "Uyarlanabilir Ekran & Kağıt Modu",
+        subtitle = "Açık, Siber Koyu, 2700K Sıcak Sepia ve göz yormayan Kağıt Ekran temalarıyla her ortamda net görünüm.",
         icon = Icons.Default.Visibility,
         accentColor = NeonCyan,
-        statBadge = "178° IPS // 1080p",
+        statBadge = "5 Tema // Ekran Yakınlaştırma",
         specDetails = listOf(
-            "Ekran Teknolojisi" to "IPS Kapasitif Çoklu Dokunmatik",
-            "Göz Sağlığı Kalkanı" to "Mat E-ink Kağıt Ekran Modu",
-            "Yenileme Hızı" to "60 Hz Akıcı Siber Arayüz"
+            "Görünüm Seçenekleri" to "5 Ekran & Renk Frekansı + Duvar Kağıtları",
+            "Göz Konforu" to "Kağıt Ekran (Paper Mode) ve Sepia Modu",
+            "Erişilebilirlik" to "Ayarlanabilir Yazı Boyutu & Zoom"
         )
     ),
     LenovoFeatureCard(
         id = "front_camera",
         categoryBadge = "GÜVENLİ İLETİŞİM",
-        turkishTitle = "Ön Kamera & E2EE Görüntü Şifreleme",
-        subtitle = "Kristal netliğinde uçtan uca şifreli WebRTC video görüşmeleri ve sıfır sızıntılı gizli ön sensör.",
+        turkishTitle = "WebRTC Görüntülü & Sesli Arama",
+        subtitle = "Uçtan uca DTLS/SRTP şifrelemeyle telefonunuzun kamerası ve mikrofonu üzerinden gerçek zamanlı görüşme.",
         icon = Icons.Default.Videocam,
         accentColor = Color(0xFF38BDF8),
-        statBadge = "WebRTC E2EE // HD Video",
+        statBadge = "WebRTC // Gerçek Zamanlı",
         specDetails = listOf(
-            "Video Şifreleme" to "WebRTC DTLS / SRTP 256-bit",
-            "Sensör Gizliliği" to "Sıfır Arka Kapı / İzinli Erişim",
-            "Yüz Kilidi" to "Biyometrik Hızlı Doğrulama"
+            "Ses & Görüntü Şifreleme" to "WebRTC DTLS / SRTP",
+            "İzin Yönetimi" to "Anlık Kamera ve Mikrofon İzin Kontrolü",
+            "Bağlantı" to "Farklı Ağlardan Çapraz Cihaz Görüşmesi"
         )
     ),
     LenovoFeatureCard(
         id = "big_battery",
         categoryBadge = "GÜÇ & VERİMLİLİK",
-        turkishTitle = "Büyük Kapasiteli Güçlü Siber Batarya",
-        subtitle = "Uzun ömürlü pil tasarımı. Güç kalkanı ile 48+ saat kesintisiz siber iletişim ve sıfır arka plan israfı.",
+        turkishTitle = "Hafif Mimari & Düşük Güç Tüketimi",
+        subtitle = "Gereksiz arka plan servisleri çalıştırmayan verimli Jetpack Compose arayüzü ile dengeli pil kullanımı.",
         icon = Icons.Default.BatteryChargingFull,
         accentColor = NeonGreen,
-        statBadge = "48+ Saat // Akıllı Tasarruf",
+        statBadge = "Optimize // Jetpack Compose",
         specDetails = listOf(
-            "Pil Optimizasyonu" to "Akıllı Arka Plan Güç Kalkanı",
-            "Bekleme Süresi" to "Sürekli E2EE Hazırda Bekleme",
-            "Enerji Sınıfı" to "Düşük Tüketimli Kripto Çekirdek"
+            "Pil Optimizasyonu" to "Olay Tabanlı Dinleyiciler",
+            "Veri Depolama" to "Yerel Room SQLite + Firebase Firestore",
+            "Ağ Kullanımı" to "Yalnızca Aktif Oturumda Senkronizasyon"
         )
     ),
     LenovoFeatureCard(
         id = "fast_processor",
-        categoryBadge = "İŞLEM MİMARİSİ",
-        turkishTitle = "Yüksek Performanslı 4 Çekirdekli Kripto İşlemci",
-        subtitle = "Oyun simülasyonları ve çoklu görevleri sıfır gecikmeyle çalıştıran yüksek hızlı işlemci mimarisi.",
+        categoryBadge = "AKICI PERFORMANS",
+        turkishTitle = "Hızlı Mesajlaşma & Akıllı GEN AI",
+        subtitle = "Cihazınızın desteklediği en yüksek yenileme hızında pürüzsüz kaydırma ve anlık yapay zekâ yanıtları.",
         icon = Icons.Default.Memory,
         accentColor = CyberYellow,
-        statBadge = "4× Çekirdek // 0ms Gecikme",
+        statBadge = "Akıcı UI // GEN AI Pro",
         specDetails = listOf(
-            "İşlemci Mimarisi" to "Quad-Core Donanım Hızlandırma",
-            "Oyun Performansı" to "Retro / 3D Mini Oyunlar 60 FPS",
-            "Tuş Tepki Hızı" to "Sıfır Gecikmeli Mekanik Tok"
+            "Ekran Akıcılığı" to "Cihazın Doğal Yüksek Yenileme Hızı",
+            "Oyun & Eğlence" to "Dahili Siber Mini Oyunlar",
+            "Tuş Geri Bildirimi" to "Düşük Gecikmeli Ses Efektleri"
         )
     )
 )
@@ -198,7 +198,7 @@ fun LenovoTechShowcasePlayer(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "GÜÇLÜ DONANIM & KUSURSUZ GÜVENLİK",
+                                text = "GÜVENLİ MESAJLAŞMA & AKICI MİMARİ",
                                 color = Color.White.copy(alpha = 0.9f),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
@@ -206,7 +206,7 @@ fun LenovoTechShowcasePlayer(
                             )
                         }
                         Text(
-                            text = "GENeral Pro Donanım & Sistem Mimarisi",
+                            text = "GENeral Chat Sistem Özellikleri",
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Black

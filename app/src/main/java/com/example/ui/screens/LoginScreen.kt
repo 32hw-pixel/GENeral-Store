@@ -70,6 +70,8 @@ fun LoginScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     val scrollState = rememberScrollState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val cloudAuthLoading by viewModel.cloudAuthLoading.collectAsState()
 
     androidx.activity.compose.BackHandler {
         viewModel.navigateTo(Screen.Chat)
@@ -107,66 +109,36 @@ fun LoginScreen(
 
             AuthHeader(
                 title = "Giriş Yap",
-                subtitle = "Sohbet geçmişinizi kaydetmek için giriş yapın",
+                subtitle = "Farklı cihazlardan internet üzerinden sohbet etmek için Google ile bağlanın",
                 icon = Icons.Default.Security
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Demo Account Quick Fill Card
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                ),
+            Button(
+                onClick = { viewModel.signInWithGoogle(context, navigateToChatOnSuccess = true) },
+                enabled = !cloudAuthLoading,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("login_google_signin_button")
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Speed,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.padding(start = 8.dp))
-                        Column {
-                            Text(
-                                text = "Hızlı Test Hesabı",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Text(
-                                text = "demo@example.com / Demo1234!",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                    TextButton(
-                        onClick = { viewModel.fillDemoAccount() },
-                        modifier = Modifier.testTag("fill_demo_button")
-                    ) {
-                        Text(
-                            text = "Doldur",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
+                if (cloudAuthLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Google ile Bağlan (2 Cihaz Bulut Sohbeti)",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             AuthTextField(
                 value = email,
@@ -352,7 +324,7 @@ fun LoginScreen(
             },
             text = {
                 Text(
-                    text = "Önceki demoda oluşturduğunuz hesaplar ve şifreler silinip sıfırlanacaktır. Bu işlemden sonra yeni bir hesap açabilir veya test hesabını kullanabilirsiniz. Devam edilsin mi?",
+                    text = "Bu cihazda oluşturduğunuz yerel hesaplar ve şifreler kalıcı olarak silinecektir. Bu işlemden sonra yeni bir hesap açabilir veya Google hesabınızla bağlanabilirsiniz. Devam edilsin mi?",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

@@ -139,22 +139,6 @@ fun ForgotPasswordScreen(
                 )
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                androidx.compose.material3.TextButton(
-                    onClick = { viewModel.forgotEmail.value = "demo@example.com" },
-                    modifier = Modifier.testTag("fill_forgot_demo_button")
-                ) {
-                    Text(
-                        text = "demo@example.com ile doldur",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(

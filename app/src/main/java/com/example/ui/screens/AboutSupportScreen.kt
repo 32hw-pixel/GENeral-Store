@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -60,9 +62,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -121,7 +125,7 @@ fun AboutSupportScreen(
     val textMutedColor = if (isPaper) PaperTextMuted else TextSecondary
     val borderColor = if (isPaper) PaperBorder else CyberCardBorder
     val accentColor = if (isPaper) PaperText else CyberYellow
-    val screenConfig = LocalConfiguration.current
+    val currentDensity = LocalDensity.current
 
     Scaffold(
         topBar = {
@@ -131,7 +135,8 @@ fun AboutSupportScreen(
                         text = "Hakkında & Cihaz Analizi",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
-                        color = textColor
+                        color = textColor,
+                        modifier = Modifier.semantics { heading() }
                     )
                 },
                 navigationIcon = {
@@ -158,14 +163,24 @@ fun AboutSupportScreen(
         containerColor = bgColor,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(bgColor)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .background(bgColor),
+            contentAlignment = Alignment.TopCenter
         ) {
+            val viewportWidthDp = maxWidth.value.toInt()
+            val viewportHeightDp = maxHeight.value.toInt()
+            val densityDpi = (currentDensity.density * 160f).toInt()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 840.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
             // Header Info Card
             Card(
                 colors = CardDefaults.cardColors(containerColor = cardBg),
@@ -333,7 +348,7 @@ fun AboutSupportScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Resmi Destek Talebi / Bilet Oluştur (#GEN-TK)",
+                            text = "Tanı & Destek E-postası Hazırla",
                             fontWeight = FontWeight.Bold,
                             color = if (isPaper) PaperText else NeonCyan,
                             fontSize = 12.sp
@@ -357,10 +372,10 @@ fun AboutSupportScreen(
                                 Cihaz Modeli: ${Build.MANUFACTURER.uppercase()} ${Build.MODEL}
                                 Donanım: ${Build.BOARD} (${Build.HARDWARE})
                                 Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
-                                Ekran: ${screenConfig.screenWidthDp}x${screenConfig.screenHeightDp} dp (DPI: ${screenConfig.densityDpi})
+                                Ekran: ${viewportWidthDp}x${viewportHeightDp} dp (DPI: ${densityDpi})
                                 Çekirdek Sayısı: ${Runtime.getRuntime().availableProcessors()}
                                 JVM RAM Maks: ${Runtime.getRuntime().maxMemory() / (1024 * 1024)} MB
-                                E2EE Protokol: AES-256-GCM + SHA-256 PBKDF2
+                                Aktarım & Kasa: TLS (Bulut) + AES-256-CBC (Yerel Kasa)
                                 Telemetri: 0 (Zero-Tracker)
                                 Zaman Damgası: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}
                                 ========================================
@@ -376,7 +391,7 @@ fun AboutSupportScreen(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
+                            .height(48.dp)
                             .testTag("copy_diagnostics_button")
                     ) {
                         Icon(
@@ -436,9 +451,9 @@ fun AboutSupportScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // SIKÇA SORULAN SORULAR (SSS) AKORDİYON BÖLÜMÜ
+            // TANITIM KILAVUZU AKORDİYON BÖLÜMÜ
             SectionCard(
-                title = "Sıkça Sorulan Sorular (Destek Kılavuzu)",
+                title = "Tanıtım Kılavuzu",
                 icon = Icons.Default.Security,
                 isPaper = isPaper,
                 cardBg = cardBg,
@@ -446,7 +461,7 @@ fun AboutSupportScreen(
                 textColor = textColor
             ) {
                 val faqs = listOf(
-                    "Uçtan uca şifreleme anahtarları nerede saklanıyor?" to "Tüm şifreleme anahtarları yalnızca sizin cihazınızda donanım seviyesinde (AES-256) oluşturulur ve yerel SQLite Room veritabanında saklanır. Hiçbir harici sunucuya iletilmez.",
+                    "Mesaj güvenliği ve veri saklama nasıl çalışır?" to "Bulut sohbetleri HTTPS/TLS ile aktarılır ve Google Cloud altyapısında korunur; sesli/görüntülü WebRTC aramaları DTLS-SRTP kullanır. İsteğe bağlı yerel sohbet dışa aktarımları belirlediğiniz parolayla AES-256 olarak cihazınızda şifrelenir.",
                     "Karşı tarafla mesajlaşırken siyah ekran hatası çözüldü mü?" to "Evet! Ekran yakalama koruma modu akıllı yapılandırmaya taşındı. Cihaz ID'si girip 'Mesaj At' dediğinizde doğrudan mesajlaşma ekranı sıfır gecikmeyle açılır.",
                     "Zamanlanmış mesajlar nasıl çalışır?" to "Doğrudan mesajlaşma ekranında saat simgesine dokunarak ileri tarih ve saat seçebilirsiniz. Belirlenen vakit geldiğinde iletiniz arka planda otomatik olarak şifrelenip gönderilir.",
                     "Kağıt Ekran (Paper Mode) ne sağlar?" to "OLED ve LCD mavi ışık spektrumunu sıfırlayarak dijital ekranınızı mat bir e-ink kitap sayfasına dönüştürür. Göz yorgunluğunu önler ve meraklı gözlerden gizler.",
@@ -506,57 +521,22 @@ fun AboutSupportScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. CİHAZIN DIŞI VE İÇİ: DONANIM & ÇEKİRDEK RAPORU
+            // İŞLETİM SİSTEMİ BİLGİSİ
             SectionCard(
-                title = "Cihaz Donanımı & Fiziksel Çekirdek (Dışı & İçi)",
-                icon = Icons.Default.PhoneAndroid,
-                isPaper = isPaper,
-                cardBg = cardBg,
-                borderColor = borderColor,
-                textColor = textColor
-            ) {
-                val maxMemMb = Runtime.getRuntime().maxMemory() / (1024 * 1024)
-                val totalMemMb = Runtime.getRuntime().totalMemory() / (1024 * 1024)
-                val freeMemMb = Runtime.getRuntime().freeMemory() / (1024 * 1024)
-                val cores = Runtime.getRuntime().availableProcessors()
-
-                DossierRow("Cihaz Modeli", Build.MODEL, isPaper)
-                DossierDivider(borderColor)
-                DossierRow("Üretici Firma", Build.MANUFACTURER.uppercase(), isPaper)
-                DossierDivider(borderColor)
-                DossierRow("Marka / Ürün", "${Build.BRAND} / ${Build.PRODUCT}", isPaper)
-                DossierDivider(borderColor)
-                DossierRow("Donanım Kartı", "${Build.BOARD} (${Build.HARDWARE})", isPaper)
-                DossierDivider(borderColor)
-                DossierRow("İşlemci Mimarisi", Build.SUPPORTED_ABIS.joinToString(", "), isPaper)
-                DossierDivider(borderColor)
-                DossierRow("CPU Çekirdekleri", "$cores Mantıksal Çekirdek", isPaper)
-                DossierDivider(borderColor)
-                DossierRow("JVM RAM Kotası", "Maks: ${maxMemMb}MB (Kullanılan: ${totalMemMb - freeMemMb}MB)", isPaper)
-                DossierDivider(borderColor)
-                DossierRow("Ekran Çözünürlüğü", "${screenConfig.screenWidthDp}dp × ${screenConfig.screenHeightDp}dp (DPI: ${screenConfig.densityDpi})", isPaper)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. İŞLETİM SİSTEMİ & ANDROID ÇEKİRDEĞİ
-            SectionCard(
-                title = "İşletim Sistemi & Çekirdek Katmanı",
+                title = "İşletim Sistemi Bilgisi",
                 icon = Icons.Default.Build,
                 isPaper = isPaper,
                 cardBg = cardBg,
                 borderColor = borderColor,
                 textColor = textColor
             ) {
-                DossierRow("Android Sürümü", "Android ${Build.VERSION.RELEASE}", isPaper)
+                DossierRow("İşletim Sistemi", "Android ${Build.VERSION.RELEASE}", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("API SDK Düzeyi", "API ${Build.VERSION.SDK_INT}", isPaper)
+                DossierRow("API Düzeyi", "API ${Build.VERSION.SDK_INT}", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("Sistem Yapı No", Build.DISPLAY, isPaper)
+                DossierRow("Cihaz Modeli", "${Build.MANUFACTURER} ${Build.MODEL}", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("Bootloader", Build.BOOTLOADER, isPaper)
-                DossierDivider(borderColor)
-                DossierRow("Güvenlik Katmanı", "SELinux Sandbox + Runtime İzin Koruması", isPaper)
+                DossierRow("Uygulama Sürümü", "GENeral Chat 7.7.3 Pro", isPaper)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -570,15 +550,15 @@ fun AboutSupportScreen(
                 borderColor = borderColor,
                 textColor = textColor
             ) {
-                DossierRow("Mesaj Şifreleme", "Uçtan Uca (E2EE) AES-256-GCM Donanım Hızlandırma", isPaper)
+                DossierRow("Aktarım & Arşiv", "TLS Aktarım + Yerel AES-256 Arşiv", isPaper)
                 DossierDivider(borderColor)
                 DossierRow("Şifre Güvenliği", "PBKDF2WithHmacSHA256 (10.000 İterasyon)", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("Yerel Veritabanı", "SQLite Room (Cihaz İçi Şifreli Veri Deposu)", isPaper)
+                DossierRow("Yerel Veritabanı", "SQLite Room (Cihaz İçi Veri Deposu)", isPaper)
                 DossierDivider(borderColor)
                 DossierRow("Telemetri & İzleyiciler", "SIFIR (Zero-Tracker, Reklamsız, Telemetrisiz)", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("2 Cihaz İletişimi", "Doğrudan P2P Tünelleme ve E2EE Mesajlaşma", isPaper)
+                DossierRow("2 Cihaz İletişimi", "Bulut (Firebase Firestore) + Yerel Ağ Companion Sunucusu", isPaper)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -596,11 +576,11 @@ fun AboutSupportScreen(
                 DossierDivider(borderColor)
                 DossierRow("Taktil Haptik Motoru", "Mekanik Tok Anahtar ve Geri Bildirim Titreşimi", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("10 OS Maskesi", "Hesap Makinesi, Hava Durumu, Notlar vb. Gerçek İkon Değişimi", isPaper)
+                DossierRow("10 Ekran Maskesi", "Uygulama İçi Ekran Kalkanları (Hesap Makinesi, Hava Durumu, Notlar)", isPaper)
                 DossierDivider(borderColor)
                 DossierRow("Yapay Zeka Kamuflajı", "Özel Decoy ve Gizli Tetikleyici Tasarımcısı", isPaper)
                 DossierDivider(borderColor)
-                DossierRow("Kağıt Ekran (Paper Mode)", "Mavi Işıksız, Mat e-ink Mikro-Kapsül Polarizasyonu", isPaper)
+                DossierRow("Kağıt Ekran (Paper Mode)", "Mavi Işığı Azaltan Mat Okuma Teması", isPaper)
                 DossierDivider(borderColor)
                 DossierRow("3 Siber Mini Oyun", "Subway Surfers Tarzı Tren Koşucusu, Flappy Bird, XOX", isPaper)
             }
@@ -642,6 +622,7 @@ fun AboutSupportScreen(
                 color = textMutedColor,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
+            }
         }
     }
 
@@ -731,7 +712,8 @@ private fun SectionCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = textColor
+                    color = textColor,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -800,8 +782,8 @@ private fun GenAiSupportDialog(
             q.contains("cihaz", ignoreCase = true) || q.contains("mesaj", ignoreCase = true) ->
                 "【DERİNLEMESİNE ANALİZ - 2 CİHAZ ARASI MESAJLAŞMA】\n\n" +
                 "1. Sohbetler sekmesinde sağ üstteki '+' tuşuna dokunarak karşı tarafın cihaz kodunu (örneğin 'Cihaz 2' veya telefon numarasını) ekleyin.\n" +
-                "2. Açılan doğrudan mesajlaşma penceresinde tüm iletiler E2EE uçtan uca AES-256 tüneliyle anında iletilir.\n" +
-                "3. Mesajlar yerel SQLite Room veritabanında şifreli olarak saklanır, 3. şahıslar veya sunucu operatörleri veriyi asla okuyamaz."
+                "2. Açılan doğrudan mesajlaşma penceresinde tüm iletiler bulut (TLS) veya aynı Wi-Fi üzerindeki Companion sunucusu üzerinden anında iletilir.\n" +
+                "3. Bulut sohbetleri hesap güvenliği kurallarıyla Firestore üzerinde saklanır; yerel şifreli arşivler cihazınızda tutulur."
 
             q.contains("kağıt", ignoreCase = true) || q.contains("paper", ignoreCase = true) ->
                 "【DERİNLEMESİNE ANALİZ - KAĞIT EKRAN (PAPER MODE)】\n\n" +
@@ -809,8 +791,8 @@ private fun GenAiSupportDialog(
 
             q.contains("maske", ignoreCase = true) || q.contains("kamuflaj", ignoreCase = true) || q.contains("sallama", ignoreCase = true) ->
                 "【DERİNLEMESİNE ANALİZ - GİZLİLİK MASKELERİ VE SALLAMA】\n\n" +
-                "10 farklı kamuflaj maskesi (Hesap Makinesi, Hava Durumu, Notlar, Pusula vb.) ile uygulamanın ikonunu ve adını değiştirebilirsiniz.\n" +
-                "Ayrıca 'AI Maske Tasarla' seçeneği ile dilediğiniz sahte aracı üretebilirsiniz.\n" +
+                "10 farklı ekran koruma maskesi (Hesap Makinesi, Hava Durumu, Notlar, Pusula vb.) ile uygulama içi ekran görünümünü gizleyebilirsiniz (Android sistem ikonu ve resmi adı korunur).\n" +
+                "Ayrıca 'AI Maske Tasarla' seçeneği ile özel ekran profili üretebilirsiniz.\n" +
                 "Maskedeyken telefonu salladığınızda (Accelerometer 2.2G) sistem anında GENeral Chat'e döner."
 
             q.contains("oyun", ignoreCase = true) ->
@@ -1000,13 +982,14 @@ private fun SupportTicketDialog(
     val borderColor = if (isPaper) PaperBorder else CyberCardBorder
     val accentColor = if (isPaper) PaperText else NeonCyan
 
-    var category by remember { mutableStateOf("Uçtan Uca Şifreleme") }
+    val context = LocalContext.current
+    var category by remember { mutableStateOf("TLS & Veri Gizliliği") }
     var priority by remember { mutableStateOf("Yüksek") }
     var subject by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var submittedTicketId by remember { mutableStateOf<String?>(null) }
+    var preparedSummary by remember { mutableStateOf<String?>(null) }
 
-    val categories = listOf("Uçtan Uca Şifreleme", "2 Cihaz Bağlantısı", "Kamuflaj & Maskeler", "Zamanlanmış Mesajlar", "Performans & 120Hz", "Diğer")
+    val categories = listOf("TLS & Veri Gizliliği", "2 Cihaz Bağlantısı", "Kamuflaj & Maskeler", "Zamanlanmış Mesajlar", "Performans & Akıcılık", "Diğer")
     val priorities = listOf("Düşük", "Normal", "Yüksek", "Kritik Acil")
 
     AlertDialog(
@@ -1022,13 +1005,13 @@ private fun SupportTicketDialog(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "Resmi Destek Bileti",
+                        text = "Tanı & Destek E-postası",
                         fontWeight = FontWeight.Black,
                         color = accentColor,
                         fontSize = 17.sp
                     )
                     Text(
-                        text = "Teknik İnceleme & Teşhis Havuzu",
+                        text = "Cihaz E-posta İstemcisi ve Pano Aktarımı",
                         color = textMutedColor,
                         fontSize = 11.sp
                     )
@@ -1036,7 +1019,7 @@ private fun SupportTicketDialog(
             }
         },
         text = {
-            if (submittedTicketId != null) {
+            if (preparedSummary != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1055,22 +1038,14 @@ private fun SupportTicketDialog(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "DESTEK BİLETİNİZ OLUŞTURULDU",
+                        text = "DESTEK ÖZETİ HAZIRLANDI",
                         fontWeight = FontWeight.Black,
                         color = textColor,
                         fontSize = 15.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Referans Kodu: $submittedTicketId",
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp
-                    )
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Talebiniz kriptografik imza ile şifrelendi ve teşhis kuyruğuna alındı. Sistem analiz raporunuz biletinize otomatik iliştirildi.",
+                        text = "Uygulamada otomatik uzak bilet sunucusu bulunmadığı için destek metniniz cihaz tanı bilgileriyle birlikte panoya kopyalandı ve e-posta uygulamanız yönlendirildi.",
                         color = textMutedColor,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
@@ -1192,7 +1167,7 @@ private fun SupportTicketDialog(
             }
         },
         confirmButton = {
-            if (submittedTicketId != null) {
+            if (preparedSummary != null) {
                 Button(
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor)
@@ -1204,18 +1179,40 @@ private fun SupportTicketDialog(
                     onClick = {
                         if (subject.isNotBlank() && description.isNotBlank()) {
                             SoundPoolManager.playConfirm()
-                            submittedTicketId = "#GEN-TK-${(10000..99999).random()}"
+                            val body = buildString {
+                                appendLine("Kategori: $category")
+                                appendLine("Öncelik: $priority")
+                                appendLine("Konu: ${subject.trim()}")
+                                appendLine()
+                                appendLine("Açıklama:")
+                                appendLine(description.trim())
+                                appendLine()
+                                appendLine("Cihaz: ${Build.MANUFACTURER} ${Build.MODEL} / Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+                            }
+                            runCatching {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("GENeral Chat Destek Özeti", body))
+                            }
+                            runCatching {
+                                val emailIntent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                    data = android.net.Uri.parse("mailto:")
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "[GENeral Chat Destek] ${subject.trim()}")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, body)
+                                }
+                                context.startActivity(emailIntent)
+                            }
+                            preparedSummary = body
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                     enabled = subject.isNotBlank() && description.isNotBlank()
                 ) {
-                    Text("Bileti Gönder", color = if (isPaper) PaperBg else CyberBlack, fontWeight = FontWeight.Bold)
+                    Text("E-posta / Pano Oluştur", color = if (isPaper) PaperBg else CyberBlack, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
-            if (submittedTicketId == null) {
+            if (preparedSummary == null) {
                 TextButton(onClick = onDismiss) {
                     Text("İptal", color = textMutedColor)
                 }

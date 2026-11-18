@@ -1,18 +1,19 @@
 package com.example.util
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
 import com.example.data.CustomAiDisguise
 import com.example.data.MaskType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Manages Dynamic Android Launcher Icon & App Name Disguise Aliases
- * and AI-Powered Custom Disguise Profiles.
+ * Manages in-app screen shield modes and AI-generated utility shield profiles
+ * via SharedPreferences (does not alter OS launcher icons/aliases for store policy compliance).
  */
 object DisguiseManager {
+
+    private const val PREFS = "general_chat_disguise_prefs"
+    private const val KEY_ACTIVE_MASK = "active_mask_name"
 
     private val _activeMask = MutableStateFlow<MaskType?>(null)
     val activeMask = _activeMask.asStateFlow()
@@ -23,31 +24,23 @@ object DisguiseManager {
     private val _activeDisguiseName = MutableStateFlow("GENeral Chat")
     val activeDisguiseName = _activeDisguiseName.asStateFlow()
 
+    fun init(context: Context) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val savedName = prefs.getString(KEY_ACTIVE_MASK, null)
+        val found = savedName?.let { n -> MaskType.entries.firstOrNull { it.name == n } }
+        _activeMask.value = found
+        _activeDisguiseName.value = found?.title ?: "GENeral Chat"
+    }
+
     /**
-     * Activates an official system camouflage mask, toggling the corresponding
-     * activity-alias in AndroidManifest so the app icon and name appear as that utility.
+     * Activates an in-app screen shield mode without spoofing the system launcher icon.
      */
     fun activateMask(context: Context, mask: MaskType): Boolean {
         return try {
-            val pm = context.packageManager
-            val pkg = context.packageName
-
-            // Enable selected alias
-            pm.setComponentEnabledSetting(
-                ComponentName(pkg, mask.aliasClass),
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-
-            // Disable other mask aliases
-            MaskType.entries.filter { it != mask }.forEach { other ->
-                pm.setComponentEnabledSetting(
-                    ComponentName(pkg, other.aliasClass),
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-            }
-
+            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_ACTIVE_MASK, mask.name)
+                .apply()
             _activeMask.value = mask
             _activeDisguiseName.value = mask.title
             SoundPoolManager.playConfirm()
@@ -60,20 +53,14 @@ object DisguiseManager {
     }
 
     /**
-     * Restores default GENeral Chat icon & identity.
+     * Restores default GENeral Chat in-app identity.
      */
     fun restoreDefaultIdentity(context: Context) {
         try {
-            val pm = context.packageManager
-            val pkg = context.packageName
-
-            MaskType.entries.forEach { mask ->
-                pm.setComponentEnabledSetting(
-                    ComponentName(pkg, mask.aliasClass),
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-            }
+            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .remove(KEY_ACTIVE_MASK)
+                .apply()
             _activeMask.value = null
             _activeDisguiseName.value = "GENeral Chat"
             SoundPoolManager.playConfirm()
@@ -84,27 +71,26 @@ object DisguiseManager {
     }
 
     /**
-     * AI-Powered Custom Disguise Generator:
-     * Generates a realistic decoy utility based on user's concept prompt.
+     * Generates a custom in-app utility shield concept based on user's prompt.
      */
     fun generateAiDisguise(userPrompt: String): CustomAiDisguise {
         val clean = userPrompt.trim()
         val (title, subtitle, category, trigger, emoji) = when {
             clean.contains("borsa", ignoreCase = true) || clean.contains("kripto", ignoreCase = true) || clean.contains("para", ignoreCase = true) ->
-                listOf("Borsa Portföyüm", "Canlı hisse ve endeks verileri", "Finans & Yatırım", "BIST100 grafiğine 3 kez dokun", "📈")
+                listOf("Borsa Portföyüm", "Canlı hisse ve endeks görünümü", "Finans & Yatırım", "Başlık alanına 3 kez dokun", "📈")
             clean.contains("yemek", ignoreCase = true) || clean.contains("tarif", ignoreCase = true) || clean.contains("mutfak", ignoreCase = true) ->
                 listOf("Mutfak Rehberi", "Pratik ev yemekleri ve tarifler", "Yemek & Yaşam", "'Günün Çorbası'na 3 kez dokun", "🍲")
             clean.contains("spor", ignoreCase = true) || clean.contains("fit", ignoreCase = true) || clean.contains("adım", ignoreCase = true) ->
-                listOf("FitStep Sayacı", "Günlük adım ve kalori takibi", "Sağlık & Egzersiz", "Kalori halkasına 3 kez dokun", "🏃")
+                listOf("FitStep Sayacı", "Günlük adım ve egzersiz notları", "Sağlık & Egzersiz", "Sayaca 3 kez dokun", "🏃")
             clean.contains("kitap", ignoreCase = true) || clean.contains("roman", ignoreCase = true) || clean.contains("oku", ignoreCase = true) ->
-                listOf("E-Kitap Okuyucu", "Çevrimdışı kütüphane ve epikler", "Eğitim & Kitap", "Sayfa numarasına 3 kez dokun", "📖")
+                listOf("E-Kitap Okuyucu", "Çevrimdışı okuma notları", "Eğitim & Kitap", "Sayfa numarasına 3 kez dokun", "📖")
             clean.contains("araba", ignoreCase = true) || clean.contains("hız", ignoreCase = true) || clean.contains("araç", ignoreCase = true) ->
-                listOf("Araç Takip & OBD", "Motor devri ve yakıt tüketimi", "Otomotiv", "Hız göstergesine 3 kez dokun", "🏎️")
+                listOf("Araç Bakım Notu", "Bakım ve kilometre defteri", "Otomotiv", "Gösterge başlığına 3 kez dokun", "🏎️")
             else ->
                 listOf(
-                    if (clean.isNotBlank()) clean.capitalize() else "Kişisel Kasa",
-                    "Şifrelenmiş özel veri deposu ve yedekleme",
-                    "Sistem Yardımcı Programı",
+                    if (clean.isNotBlank()) clean.replaceFirstChar { it.uppercase() } else "Kişisel Kasa",
+                    "Ekran koruma görünümü",
+                    "Yardımcı Görünüm",
                     "Logoya 3 kez dokun veya telefonu salla",
                     "🔒"
                 )

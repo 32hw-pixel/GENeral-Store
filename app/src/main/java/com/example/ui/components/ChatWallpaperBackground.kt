@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,20 +46,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.R
 import com.example.ui.theme.CyberBlack
 import com.example.ui.theme.CyberCardBg
 import com.example.ui.theme.CyberCardBorder
 import com.example.ui.theme.CyberYellow
+import com.example.ui.theme.LocalAppThemeMode
 import com.example.ui.theme.LocalPaperMode
+import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.NeonGreen
 import com.example.ui.theme.NeonPurple
@@ -72,6 +84,10 @@ import com.example.ui.theme.TextSecondary
 import com.example.util.ChatWallpaper
 import com.example.util.ChatWallpaperManager
 import com.example.util.SoundPoolManager
+import java.io.File
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun ChatWallpaperBackground(
@@ -84,60 +100,100 @@ fun ChatWallpaperBackground(
     val dimAlpha by ChatWallpaperManager.dimAlpha.collectAsState()
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (isPaper) {
+        when (wallpaper) {
+            ChatWallpaper.CYBER_4K_ART -> {
+                Image(
+                    painter = painterResource(id = R.drawable.img_cyber_4k_bg),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.28f))
+                )
+            }
+            ChatWallpaper.CYBER_GRID -> {
+                CyberGridWallpaper()
+            }
+            ChatWallpaper.CYBER_HEX_PATTERN -> {
+                CyberHexPatternWallpaper(isLight = isPaper)
+            }
+            ChatWallpaper.SERVER_ROOM -> {
+                ServerRoomWallpaper()
+            }
+            ChatWallpaper.NEON_PURPLE -> {
+                NeonPurpleWallpaper()
+            }
+            ChatWallpaper.CARBON_TACTICAL -> {
+                CarbonTacticalWallpaper()
+            }
+            ChatWallpaper.EMERALD_MATRIX -> {
+                EmeraldMatrixWallpaper()
+            }
+            ChatWallpaper.SUNSET_HORIZON -> {
+                SunsetHorizonWallpaper()
+            }
+            ChatWallpaper.DEEP_SPACE_NEBULA -> {
+                DeepSpaceNebulaWallpaper()
+            }
+            ChatWallpaper.AMOLED_PURE_BLACK -> {
+                Box(modifier = Modifier.fillMaxSize().background(Color(0xFF000000)))
+            }
+            ChatWallpaper.PAPER_INK -> {
+                Box(modifier = Modifier.fillMaxSize().background(PaperBg))
+            }
+            ChatWallpaper.CUSTOM_PHOTO -> {
+                if (customUri != null) {
+                    val context = LocalContext.current
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(customUri)
+                            .size(coil.size.Size.ORIGINAL)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.High,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = dimAlpha))
+                    )
+                } else {
+                    CyberGridWallpaper()
+                }
+            }
+        }
+
+        val themeMode = LocalAppThemeMode.current
+        if (isPaper && wallpaper != ChatWallpaper.PAPER_INK && wallpaper != ChatWallpaper.CYBER_HEX_PATTERN && wallpaper != ChatWallpaper.CUSTOM_PHOTO) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(PaperBg)
+                    .background(PaperBg.copy(alpha = 0.25f))
             )
-        } else {
-            when (wallpaper) {
-                ChatWallpaper.CYBER_GRID -> {
-                    CyberGridWallpaper()
-                }
-                ChatWallpaper.SERVER_ROOM -> {
-                    ServerRoomWallpaper()
-                }
-                ChatWallpaper.NEON_PURPLE -> {
-                    NeonPurpleWallpaper()
-                }
-                ChatWallpaper.CARBON_TACTICAL -> {
-                    CarbonTacticalWallpaper()
-                }
-                ChatWallpaper.EMERALD_MATRIX -> {
-                    EmeraldMatrixWallpaper()
-                }
-                ChatWallpaper.SUNSET_HORIZON -> {
-                    SunsetHorizonWallpaper()
-                }
-                ChatWallpaper.DEEP_SPACE_NEBULA -> {
-                    DeepSpaceNebulaWallpaper()
-                }
-                ChatWallpaper.AMOLED_PURE_BLACK -> {
-                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF000000)))
-                }
-                ChatWallpaper.PAPER_INK -> {
-                    Box(modifier = Modifier.fillMaxSize().background(PaperBg))
-                }
-                ChatWallpaper.CUSTOM_PHOTO -> {
-                    if (customUri != null) {
-                        AsyncImage(
-                            model = customUri,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        // Dimming overlay so messages pop clearly
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = dimAlpha))
-                        )
-                    } else {
-                        CyberGridWallpaper()
-                    }
-                }
-            }
+        } else if (themeMode == AppThemeMode.WARM_SEPIA) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFF59E0B).copy(alpha = 0.14f))
+            )
+        } else if (themeMode == AppThemeMode.COOL_OLED) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF00B0FF).copy(alpha = 0.08f))
+            )
+        } else if (themeMode == AppThemeMode.LIGHT_MODERN && wallpaper != ChatWallpaper.CUSTOM_PHOTO) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFF8FAFC).copy(alpha = 0.16f))
+            )
         }
 
         // Inner chat content
@@ -146,37 +202,81 @@ fun ChatWallpaperBackground(
 }
 
 @Composable
+private fun CyberHexPatternWallpaper(isLight: Boolean) {
+    val bgColor = if (isLight) Color(0xFFF5F3EC) else CyberBlack
+    val hexColor = if (isLight) Color(0xFFB5A992).copy(alpha = 0.35f) else CyberYellow.copy(alpha = 0.10f)
+    val dotColor = hexColor.copy(alpha = (hexColor.alpha * 1.6f).coerceAtMost(1f))
+
+    Spacer(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+            .drawWithCache {
+                val hexRadius = 26.dp.toPx()
+                val dx = hexRadius * 1.75f
+                val dy = hexRadius * 1.5f
+                val stroke = Stroke(width = 1.dp.toPx())
+                val cols = (size.width / dx).toInt() + 2
+                val rows = (size.height / dy).toInt() + 2
+                val combinedPath = Path()
+                val dotCenters = mutableListOf<Offset>()
+                val dotRadius = 2.dp.toPx()
+
+                for (r in 0..rows) {
+                    for (c in 0..cols) {
+                        val cx = c * dx + if (r % 2 == 1) dx * 0.5f else 0f
+                        val cy = r * dy
+                        for (k in 0..5) {
+                            val angle = k * (PI / 3.0) + (PI / 6.0)
+                            val px = cx + (hexRadius * 0.72f * cos(angle)).toFloat()
+                            val py = cy + (hexRadius * 0.72f * sin(angle)).toFloat()
+                            if (k == 0) combinedPath.moveTo(px, py) else combinedPath.lineTo(px, py)
+                        }
+                        combinedPath.close()
+                        if ((r + c) % 4 == 0) {
+                            dotCenters.add(Offset(cx, cy))
+                        }
+                    }
+                }
+                onDrawBehind {
+                    drawPath(combinedPath, color = hexColor, style = stroke)
+                    dotCenters.forEach { center ->
+                        drawCircle(color = dotColor, radius = dotRadius, center = center)
+                    }
+                }
+            }
+    )
+}
+
+@Composable
 private fun CyberGridWallpaper() {
-    Canvas(
+    Spacer(
         modifier = Modifier
             .fillMaxSize()
             .background(CyberBlack)
-    ) {
-        val gridSpacing = 48.dp.toPx()
-        val gridColor = Color(0xFF00E5FF).copy(alpha = 0.04f)
-
-        var x = 0f
-        while (x < size.width) {
-            drawLine(
-                color = gridColor,
-                start = Offset(x, 0f),
-                end = Offset(x, size.height),
-                strokeWidth = 1f
-            )
-            x += gridSpacing
-        }
-
-        var y = 0f
-        while (y < size.height) {
-            drawLine(
-                color = gridColor,
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = 1f
-            )
-            y += gridSpacing
-        }
-    }
+            .drawWithCache {
+                val gridSpacing = 44.dp.toPx()
+                val gridColor = CyberYellow.copy(alpha = 0.08f)
+                val gridPath = Path().apply {
+                    var x = 0f
+                    while (x < size.width) {
+                        moveTo(x, 0f)
+                        lineTo(x, size.height)
+                        x += gridSpacing
+                    }
+                    var y = 0f
+                    while (y < size.height) {
+                        moveTo(0f, y)
+                        lineTo(size.width, y)
+                        y += gridSpacing
+                    }
+                }
+                val stroke = Stroke(width = 1f)
+                onDrawBehind {
+                    drawPath(gridPath, color = gridColor, style = stroke)
+                }
+            }
+    )
 }
 
 @Composable
@@ -224,48 +324,52 @@ private fun NeonPurpleWallpaper() {
 
 @Composable
 private fun CarbonTacticalWallpaper() {
-    Canvas(
+    Spacer(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0E0E10))
-    ) {
-        val patternColor = Color(0xFF1E1E24).copy(alpha = 0.4f)
-        val step = 16.dp.toPx()
-        var x = 0f
-        while (x < size.width + size.height) {
-            drawLine(
-                color = patternColor,
-                start = Offset(x, 0f),
-                end = Offset(0f, x),
-                strokeWidth = 1.5f
-            )
-            x += step
-        }
-    }
+            .drawWithCache {
+                val patternColor = Color(0xFF1E1E24).copy(alpha = 0.45f)
+                val step = 16.dp.toPx()
+                val path = Path().apply {
+                    var x = 0f
+                    while (x < size.width + size.height) {
+                        moveTo(x, 0f)
+                        lineTo(0f, x)
+                        x += step
+                    }
+                }
+                val stroke = Stroke(width = 1.5f)
+                onDrawBehind {
+                    drawPath(path, color = patternColor, style = stroke)
+                }
+            }
+    )
 }
 
 @Composable
 private fun EmeraldMatrixWallpaper() {
-    Box(
+    Spacer(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF040E07))
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val matrixColor = Color(0xFF00FF66).copy(alpha = 0.05f)
-            val step = 32.dp.toPx()
-            var x = 0f
-            while (x < size.width) {
-                drawLine(
-                    color = matrixColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = 1.2f
-                )
-                x += step
+            .drawWithCache {
+                val matrixColor = Color(0xFF00F59B).copy(alpha = 0.07f)
+                val step = 32.dp.toPx()
+                val path = Path().apply {
+                    var x = 0f
+                    while (x < size.width) {
+                        moveTo(x, 0f)
+                        lineTo(x, size.height)
+                        x += step
+                    }
+                }
+                val stroke = Stroke(width = 1.2f)
+                onDrawBehind {
+                    drawPath(path, color = matrixColor, style = stroke)
+                }
             }
-        }
-    }
+    )
 }
 
 @Composable
@@ -307,6 +411,7 @@ private fun DeepSpaceNebulaWallpaper() {
 fun WallpaperSettingsDialog(
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val isPaper = LocalPaperMode.current
     val currentWallpaper by ChatWallpaperManager.selectedWallpaper.collectAsState()
     val dimAlpha by ChatWallpaperManager.dimAlpha.collectAsState()
@@ -315,7 +420,16 @@ fun WallpaperSettingsDialog(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri != null) {
-            ChatWallpaperManager.setCustomPhoto(uri)
+            val persistedUri = try {
+                val dest = File(context.filesDir, "custom_wallpaper_${System.currentTimeMillis()}.jpg")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    dest.outputStream().use { output -> input.copyTo(output) }
+                }
+                Uri.fromFile(dest)
+            } catch (_: Exception) {
+                uri
+            }
+            ChatWallpaperManager.setCustomPhoto(persistedUri)
             SoundPoolManager.playConfirm()
         }
     }
@@ -392,6 +506,7 @@ fun WallpaperSettingsDialog(
                             .clickable {
                                 SoundPoolManager.playMenuNav()
                                 if (wp == ChatWallpaper.CUSTOM_PHOTO) {
+                                    com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
                                     photoPickerLauncher.launch(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )

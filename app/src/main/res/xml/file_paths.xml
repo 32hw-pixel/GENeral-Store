@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="shared_files" path="shared_files/" />
+    <files-path name="community_logos" path="community_logos/" />
+    <cache-path name="shared_cache" path="." />
+</paths>

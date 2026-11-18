@@ -18,18 +18,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,29 +51,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.CyberAudioStatusBar
 import com.example.ui.components.GeneralChatLogo
+import com.example.ui.components.MusicSettingsDialog
 import com.example.ui.theme.CyberBlack
-import com.example.ui.theme.CyberCardBg
-import com.example.ui.theme.CyberCardBorder
 import com.example.ui.theme.CyberYellow
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.NeonGreen
-import com.example.ui.theme.NeonPurple
-import com.example.ui.components.CyberAudioStatusBar
-import com.example.ui.components.CyberTechButton
-import com.example.ui.components.MusicSettingsDialog
 import com.example.ui.theme.TextSecondary
 import com.example.util.SoundPoolManager
 import kotlinx.coroutines.delay
@@ -86,26 +90,26 @@ fun SloganScreen(
 
     val infiniteTransition = rememberInfiniteTransition(label = "hud_pulse")
     val pulseGlow by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
+        initialValue = 0.88f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
+            animation = tween(1600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse_glow"
     )
 
-    val radarRotation by infiniteTransition.animateFloat(
+    val ringRotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
+            animation = tween(14000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "radar_rotation"
+        label = "ring_rotation"
     )
 
-    fun triggerGlitchAndEnter() {
+    fun triggerEnter() {
         if (isGlitching) return
         isGlitching = true
         SoundPoolManager.playWhoosh()
@@ -113,15 +117,14 @@ fun SloganScreen(
 
     LaunchedEffect(isGlitching) {
         if (isGlitching) {
-            // Intense glitch burst
-            repeat(8) {
-                glitchOffsetX.snapTo((Random.nextFloat() * 24 - 12))
-                delay(40)
+            repeat(6) {
+                glitchOffsetX.snapTo((Random.nextFloat() * 18 - 9))
+                delay(35)
             }
             glitchOffsetX.snapTo(0f)
-            glitchAlpha.animateTo(0f, tween(350, easing = FastOutSlowInEasing))
-            mainWordScale.animateTo(1.3f, tween(280, easing = FastOutSlowInEasing))
-            delay(150)
+            glitchAlpha.animateTo(0f, tween(300, easing = FastOutSlowInEasing))
+            mainWordScale.animateTo(1.22f, tween(240, easing = FastOutSlowInEasing))
+            delay(120)
             onTriggerShatter()
         }
     }
@@ -129,46 +132,34 @@ fun SloganScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(CyberBlack)
-            .clickable { triggerGlitchAndEnter() }
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF060A14),
+                        Color(0xFF0D1528),
+                        Color(0xFF050811)
+                    )
+                )
+            )
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .semantics {
+                role = Role.Button
+                contentDescription = "GENeral Chat'e girmek için ekrana dokunun"
+            }
+            .clickable { triggerEnter() }
             .padding(24.dp)
             .testTag("slogan_screen"),
         contentAlignment = Alignment.Center
     ) {
-        // Sci-Fi Cyber Grid Background
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val step = 45f
-            var x = 0f
-            while (x < size.width) {
-                drawLine(
-                    color = Color(0xFF13223A).copy(alpha = 0.35f),
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = 1f
-                )
-                x += step
-            }
-            var y = 0f
-            while (y < size.height) {
-                drawLine(
-                    color = Color(0xFF13223A).copy(alpha = 0.35f),
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 1f
-                )
-                y += step
-            }
-        }
-
-        // Ambient center radial glow
+        // Ambient radial aura
         Box(
             modifier = Modifier
                 .size(340.dp)
                 .scale(pulseGlow)
-                .alpha(0.22f)
+                .alpha(0.24f)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(CyberYellow, NeonCyan, Color.Transparent)
+                        colors = listOf(NeonCyan, CyberYellow.copy(alpha = 0.45f), Color.Transparent)
                     ),
                     shape = CircleShape
                 )
@@ -177,102 +168,78 @@ fun SloganScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth()
         ) {
-            // Top HUD Status Badge
-            Box(
+            // Modern Top Status Pill
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF0B1728))
-                    .border(1.5.dp, CyberYellow.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 18.dp, vertical = 7.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF101C33))
+                    .border(1.dp, NeonCyan.copy(alpha = 0.45f), CircleShape)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(NeonGreen)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "GİRİŞ YETKİLENDİ // FREKANS BAĞLANTISI",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CyberYellow,
-                        letterSpacing = 2.sp
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(NeonGreen)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "GİRİŞ YETKİLENDİ · ŞİFRELİ FREKANS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.9f),
+                    letterSpacing = 1.sp
+                )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-            // Authentic Logo with Holographic Rotating Cyber Reticle
+            // Modern Concentric Halo Logo
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(110.dp)
+                modifier = Modifier.size(112.dp)
             ) {
-                // Rotating Radar Ring
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer { rotationZ = radarRotation }
+                        .graphicsLayer { rotationZ = ringRotation }
                 ) {
-                    val stroke = Stroke(width = 1.5f)
                     drawCircle(
-                        color = NeonCyan.copy(alpha = 0.45f),
+                        brush = Brush.sweepGradient(
+                            colors = listOf(CyberYellow, NeonCyan, Color.Transparent, CyberYellow)
+                        ),
                         radius = size.minDimension / 2f,
-                        style = stroke
+                        style = Stroke(width = 2.dp.toPx())
                     )
-                    // Radar tick marks
-                    val r = size.minDimension / 2f
-                    for (i in 0 until 12) {
-                        val angleRad = (i * 30f) * (Math.PI / 180f).toFloat()
-                        val startOffset = Offset(
-                            center.x + (r - 12f) * kotlin.math.cos(angleRad),
-                            center.y + (r - 12f) * kotlin.math.sin(angleRad)
-                        )
-                        val endOffset = Offset(
-                            center.x + r * kotlin.math.cos(angleRad),
-                            center.y + r * kotlin.math.sin(angleRad)
-                        )
-                        drawLine(
-                            color = if (i % 3 == 0) CyberYellow else NeonCyan.copy(alpha = 0.6f),
-                            start = startOffset,
-                            end = endOffset,
-                            strokeWidth = if (i % 3 == 0) 2.5f else 1.5f
-                        )
-                    }
                 }
 
-                GeneralChatLogo(size = 72.dp)
+                GeneralChatLogo(size = 76.dp)
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // High-End Cinematic Slogan Container with Cyber Brackets
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF0F1829), Color(0xFF070D18))
-                        )
+            // Sleek Glassmorphic Slogan Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F182B).copy(alpha = 0.9f)),
+                border = BorderStroke(
+                    1.2.dp,
+                    Brush.linearGradient(
+                        if (isGlitching) listOf(NeonCyan, NeonCyan) else listOf(CyberYellow.copy(alpha = 0.8f), NeonCyan.copy(alpha = 0.8f))
                     )
-                    .border(
-                        BorderStroke(
-                            1.5.dp,
-                            if (isGlitching) Brush.linearGradient(listOf(NeonCyan, NeonCyan)) else Brush.linearGradient(listOf(CyberYellow, NeonCyan))
-                        ),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .padding(horizontal = 20.dp, vertical = 28.dp),
-                contentAlignment = Alignment.Center
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Line 1: GENÇ + 'in dilinden yaşlı değil
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 28.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
@@ -283,7 +250,7 @@ fun SloganScreen(
                             fontWeight = FontWeight.Black,
                             fontSize = 34.sp,
                             color = CyberYellow,
-                            letterSpacing = 2.sp,
+                            letterSpacing = 1.5.sp,
                             modifier = Modifier.scale(mainWordScale.value)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -291,7 +258,7 @@ fun SloganScreen(
                             text = "'in dilinden",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp,
+                            fontSize = 27.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .alpha(glitchAlpha.value)
@@ -304,9 +271,9 @@ fun SloganScreen(
                     Text(
                         text = "yaşlı değil",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 23.sp,
-                        color = Color.White.copy(alpha = 0.85f),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 22.sp,
+                        color = Color.White.copy(alpha = 0.82f),
                         modifier = Modifier
                             .alpha(glitchAlpha.value)
                             .offset { IntOffset((-glitchOffsetX.value).toInt(), 0) }
@@ -314,7 +281,6 @@ fun SloganScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Line 2: GENç + anlar
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
@@ -325,14 +291,14 @@ fun SloganScreen(
                             fontWeight = FontWeight.Black,
                             fontSize = 36.sp,
                             color = NeonCyan,
-                            letterSpacing = 2.sp,
+                            letterSpacing = 1.5.sp,
                             modifier = Modifier.scale(mainWordScale.value)
                         )
                         Text(
                             text = "anlar",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp,
+                            fontSize = 31.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .alpha(glitchAlpha.value)
@@ -342,32 +308,41 @@ fun SloganScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
-            // Action Button: Asphalt style bounce button
-            CyberTechButton(
-                text = if (isGlitching) "[ ŞİFRELER ÇÖZÜLÜYOR... ]" else "[ SİSTEME SIZ ]",
-                containerColor = CyberYellow,
-                contentColor = CyberBlack,
-                borderColor = CyberYellow,
-                icon = Icons.Default.LockOpen,
-                onClick = { triggerGlitchAndEnter() },
-                testTag = "slogan_enter_button"
-            )
+            // Action Button: Modern gradient pill entry button
+            Button(
+                onClick = { triggerEnter() },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CyberYellow,
+                    contentColor = CyberBlack
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("slogan_enter_button")
+            ) {
+                Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isGlitching) "Şifreler Çözülüyor..." else "Sisteme Bağlan",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp
+                )
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "— Veya ekranda herhangi bir yere dokun —",
+                text = "Devam etmek için ekranda herhangi bir yere dokunun",
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
                 color = TextSecondary,
-                fontSize = 11.sp
+                fontSize = 12.sp
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
-            // Audio Status Footer
             CyberAudioStatusBar(
                 onOpenAudioCenter = { showAudioDialog = true }
             )

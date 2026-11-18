@@ -6,36 +6,7 @@ import kotlinx.coroutines.withContext
 class AuthRepository(private val userDao: UserDao) {
 
     suspend fun seedDemoUserIfEmpty() = withContext(Dispatchers.IO) {
-        if (userDao.getUserCount() == 0) {
-            val demoProfiles = listOf(
-                Triple("general_ytb", "GENeralYTB", "contact@generalyoutube.com") to ("Sistem Kurucusu & Ana Operatör" to "👑"),
-                Triple("siber_komutan", "Kaan Demir", "kaan.demir@cybermail.org") to ("Kıdemli Güvenlik Mimarı · E2EE Uzmanı" to "⚡"),
-                Triple("defne_cyber", "Defne Arslan", "defne.arslan@cybermail.org") to ("Kriptografi & Veri Tabanı Mühendisi" to "🛡️"),
-                Triple("zehra_general", "Zehra Akbulut", "zehraakbulut690@gmail.com") to ("Protokol Yöneticisi & Güvenlik Lideri" to "🚀"),
-                Triple("baris_tech", "Barış Özcan", "baris.tech@cybermail.org") to ("Yapay Zekâ Muhakeme & AI Geliştirici" to "🤖")
-            )
-
-            for ((account, details) in demoProfiles) {
-                val (username, fullName, email) = account
-                val (bio, avatar) = details
-                val salt = SecurityUtils.generateSalt()
-                val hash = SecurityUtils.hashPassword("Demo1234!", salt)
-                val user = UserEntity(
-                    username = username,
-                    fullName = fullName,
-                    email = email,
-                    passwordHash = hash,
-                    salt = salt,
-                    bio = bio,
-                    avatarEmoji = avatar,
-                    createdAt = System.currentTimeMillis() - (14 * 24 * 60 * 60 * 1000L),
-                    lastLoginAt = System.currentTimeMillis() - (30 * 60 * 1000L)
-                )
-                try {
-                    userDao.insertUser(user)
-                } catch (_: Exception) {}
-            }
-        }
+        // Yapay/sahte kişi profilleri kaldırıldı. Rehber yalnızca kullanıcı tarafından oluşturulan veya eklenen gerçek profilleri içerir.
     }
 
     suspend fun signUp(
@@ -108,6 +79,8 @@ class AuthRepository(private val userDao: UserDao) {
         return signUp(defaultUsername, fullName, email, password)
     }
 
+    private val failedAttemptsByIdentifier = java.util.concurrent.ConcurrentHashMap<String, Pair<Int, Long>>()
+
     suspend fun signIn(identifier: String, password: String): Result<UserEntity> =
         withContext(Dispatchers.IO) {
             val clean = identifier.trim()
@@ -115,21 +88,51 @@ class AuthRepository(private val userDao: UserDao) {
                 return@withContext Result.failure(IllegalArgumentException("Lütfen e-posta / kullanıcı adınızı ve şifrenizi girin."))
             }
 
+            val rateKey = clean.lowercase()
+            val nowMs = System.currentTimeMillis()
+            val prevState = failedAttemptsByIdentifier[rateKey]
+            if (prevState != null && prevState.second > nowMs) {
+                val waitSec = ((prevState.second - nowMs) / 1000L).coerceAtLeast(1L)
+                return@withContext Result.failure(IllegalStateException("Çok fazla hatalı giriş denemesi. Lütfen $waitSec saniye bekleyin."))
+            }
+
             // Check if identifier is username or email
             val cleanUsername = clean.removePrefix("@").lowercase()
             val user = userDao.getUserByEmail(clean)
                 ?: userDao.getUserByUsername(cleanUsername)
-                ?: return@withContext Result.failure(IllegalArgumentException("Girdiğiniz e-posta veya kullanıcı adına ait bir hesap bulunamadı."))
+                ?: run {
+                    recordFailedAttempt(rateKey, nowMs)
+                    return@withContext Result.failure(IllegalArgumentException("Girdiğiniz e-posta veya kullanıcı adına ait bir hesap bulunamadı."))
+                }
 
             val isValid = SecurityUtils.verifyPassword(password, user.salt, user.passwordHash)
             if (!isValid) {
-                return@withContext Result.failure(IllegalArgumentException("Hatalı şifre girdiniz. Lütfen tekrar deneyin."))
+                val remaining = recordFailedAttempt(rateKey, nowMs)
+                val msg = if (remaining <= 0) {
+                    "5 kez hatalı şifre girildi. Güvenlik nedeniyle 30 saniye kilitlendi."
+                } else {
+                    "Hatalı şifre girdiniz. Kalan deneme hakkı: $remaining"
+                }
+                return@withContext Result.failure(IllegalArgumentException(msg))
             }
 
-            val now = System.currentTimeMillis()
-            userDao.updateLastLogin(user.id, now)
-            Result.success(user.copy(lastLoginAt = now))
+            failedAttemptsByIdentifier.remove(rateKey)
+            userDao.updateLastLogin(user.id, nowMs)
+            Result.success(user.copy(lastLoginAt = nowMs))
         }
+
+    private fun recordFailedAttempt(rateKey: String, nowMs: Long): Int {
+        val current = failedAttemptsByIdentifier[rateKey]
+        val baseCount = if (current != null && current.second <= nowMs) current.first else 0
+        val nextCount = baseCount + 1
+        return if (nextCount >= 5) {
+            failedAttemptsByIdentifier[rateKey] = 0 to (nowMs + 30_000L)
+            0
+        } else {
+            failedAttemptsByIdentifier[rateKey] = nextCount to 0L
+            5 - nextCount
+        }
+    }
 
     suspend fun searchUsers(query: String): List<UserEntity> = withContext(Dispatchers.IO) {
         val clean = query.trim().removePrefix("@")
@@ -233,6 +236,20 @@ class AuthRepository(private val userDao: UserDao) {
                 Result.success(true)
             } else {
                 Result.failure(IllegalStateException("Şifre güncellenemedi."))
+            }
+        }
+
+    suspend fun updateUserFullName(userId: Long, newFullName: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            val clean = newFullName.trim().take(80)
+            if (clean.isBlank()) {
+                return@withContext Result.failure(IllegalArgumentException("Görünen ad boş olamaz."))
+            }
+            val rows = userDao.updateUserFullName(userId, clean)
+            if (rows > 0) {
+                Result.success(clean)
+            } else {
+                Result.failure(IllegalStateException("Yerel profil güncellenemedi."))
             }
         }
 }

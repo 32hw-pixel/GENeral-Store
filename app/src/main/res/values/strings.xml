@@ -10,4 +10,7 @@
     <string name="mask_stopwatch">Kronometre</string>
     <string name="mask_dictionary">Sözlük</string>
     <string name="mask_qr">QR Barkod</string>
+    <string name="feedback_module_title">Geri Bildirim &amp; Analiz Merkezi</string>
+    <string name="feedback_module_subtitle">Hata, öneri, deneyim raporu ve KVKK uyumlu analiz</string>
+    <string name="feedback_submit_cta">Raporu Kaydet &amp; Gönder</string>
 </resources>

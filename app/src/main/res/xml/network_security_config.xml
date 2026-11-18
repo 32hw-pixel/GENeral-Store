@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Aptoide ve Google Play güvenlik politikalarıyla uyumlu ağ güvenlik yapılandırması.
+   Tüm internet/bulut bağlantılarında HTTPS/TLS zorunludur (cleartextTrafficPermitted="false").
+   Yalnızca cihaz içi yerel loopback Web/LAN köprüsü için localhost/127.0.0.1 istisnası tanınır.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

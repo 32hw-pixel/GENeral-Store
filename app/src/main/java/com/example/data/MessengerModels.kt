@@ -1,5 +1,62 @@
 package com.example.data
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+fun formatClockTime(epochMs: Long = System.currentTimeMillis()): String {
+    return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(epochMs))
+}
+
+fun isSameCalendarDay(epochA: Long, epochB: Long): Boolean {
+    if (epochA <= 0L || epochB <= 0L) return false
+    val calA = Calendar.getInstance().apply { timeInMillis = epochA }
+    val calB = Calendar.getInstance().apply { timeInMillis = epochB }
+    return calA.get(Calendar.YEAR) == calB.get(Calendar.YEAR) &&
+        calA.get(Calendar.DAY_OF_YEAR) == calB.get(Calendar.DAY_OF_YEAR)
+}
+
+fun formatChatDayHeader(epochMs: Long, nowMs: Long = System.currentTimeMillis()): String {
+    val safeTs = if (epochMs > 0L) epochMs else nowMs
+    val yesterdayCal = Calendar.getInstance().apply {
+        timeInMillis = nowMs
+        add(Calendar.DAY_OF_YEAR, -1)
+    }
+    return when {
+        isSameCalendarDay(safeTs, nowMs) -> "Bugün"
+        isSameCalendarDay(safeTs, yesterdayCal.timeInMillis) -> "Dün"
+        else -> SimpleDateFormat("d MMMM yyyy", Locale("tr")).format(Date(safeTs))
+    }
+}
+
+fun formatConversationListTime(epochMs: Long, nowMs: Long = System.currentTimeMillis()): String {
+    val safeTs = if (epochMs > 0L) epochMs else nowMs
+    val clock = formatClockTime(safeTs)
+    val yesterdayCal = Calendar.getInstance().apply {
+        timeInMillis = nowMs
+        add(Calendar.DAY_OF_YEAR, -1)
+    }
+    return when {
+        isSameCalendarDay(safeTs, nowMs) -> clock
+        isSameCalendarDay(safeTs, yesterdayCal.timeInMillis) -> "Dün · $clock"
+        else -> "${SimpleDateFormat("d MMM", Locale("tr")).format(Date(safeTs))} · $clock"
+    }
+}
+
+fun formatByteSize(bytes: Long): String {
+    if (bytes <= 0L) return "0 B"
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    val gb = mb * 1024.0
+    return when {
+        bytes >= gb -> String.format(Locale.US, "%.2f GB", bytes / gb)
+        bytes >= mb -> String.format(Locale.US, "%.1f MB", bytes / mb)
+        bytes >= kb -> String.format(Locale.US, "%.1f KB", bytes / kb)
+        else -> "$bytes B"
+    }
+}
+
 enum class CallType {
     VOICE_INCOMING,
     VOICE_OUTGOING,
@@ -16,13 +73,21 @@ data class DirectMessage(
     val text: String,
     val time: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val isEncrypted: Boolean = true,
+    val senderId: String? = null,
+    val isEncrypted: Boolean = false,
+    val deliveredAtMs: Long? = null,
+    val readBy: List<String> = emptyList(),
+    val readAtMs: Long? = null,
     val isVoiceNote: Boolean = false,
     val voiceDurationSeconds: Int = 0,
     val attachmentUri: String? = null,
     val attachmentUrl: String? = attachmentUri,
     val attachmentName: String? = null,
     val attachmentType: String? = null,
+    val attachmentSizeBytes: Long = 0L,
+    val attachmentMimeType: String? = null,
+    val transferMode: String? = null,
+    val chunkCount: Int = 0,
     val isEdited: Boolean = false,
     val isDeletedForEveryone: Boolean = false,
     val replyToMessageId: String? = null,
@@ -41,6 +106,7 @@ data class ConversationItem(
     val initials: String,
     val username: String? = null,
     val avatarEmoji: String? = null,
+    val logoUri: String? = null,
     val isGroup: Boolean = false,
     val isOnline: Boolean = false,
     val lastMessage: String,
@@ -49,8 +115,11 @@ data class ConversationItem(
     val isVerified: Boolean = false,
     val isArchived: Boolean = false,
     val isBlocked: Boolean = false,
+    val advancedPrivacyEnabled: Boolean = false,
     var customTheme: String = "CYBER_YELLOW",
-    val messages: List<DirectMessage> = emptyList()
+    val messages: List<DirectMessage> = emptyList(),
+    val participantIds: List<String> = emptyList(),
+    val participantNames: Map<String, String> = emptyMap()
 )
 
 data class CallHistoryItem(
@@ -62,47 +131,47 @@ data class CallHistoryItem(
     val duration: String
 )
 
-val defaultConversations = listOf(
-    ConversationItem(
-        id = "conv_gemini_ai",
-        name = "Gemini 3.8 Flash AI",
-        initials = "AI",
-        avatarEmoji = "🤖",
-        isOnline = true,
-        lastMessage = "Merhaba! Gemini 3.8 Flash yapay zekâ modeliyim. Sorularını yanıtlamaya hazırım.",
-        lastTime = "Şimdi",
-        unreadCount = 1,
-        isVerified = true,
-        customTheme = "CYBER_YELLOW",
-        messages = listOf(
-            DirectMessage(
-                id = "m_ai_welcome",
-                conversationId = "conv_gemini_ai",
-                senderName = "Gemini 3.8 Flash",
-                isMe = false,
-                text = "Merhaba! Ben Gemini 3.8 Flash derin yapay zekâ asistanınız. Kodlama, matematik, ders, çeviri veya herhangi bir konuda bana soru sorabilirsiniz. Nasıl yardımcı olabilirim?",
-                time = "Şimdi"
+val defaultConversations: List<ConversationItem> by lazy {
+    val nowMs = System.currentTimeMillis()
+    val nowTime = formatClockTime(nowMs)
+    listOf(
+        ConversationItem(
+            id = "conv_self_notes",
+            name = "Siz",
+            initials = "SZ",
+            avatarEmoji = "📝",
+            isOnline = true,
+            lastMessage = "Kişisel notlar · Yalnızca sizin cihazınızda kalır",
+            lastTime = nowTime,
+            unreadCount = 0,
+            isVerified = true,
+            customTheme = "CYBER_YELLOW",
+            messages = emptyList()
+        ),
+        ConversationItem(
+            id = "conv_gemini_ai",
+            name = "GEN AI",
+            initials = "AI",
+            avatarEmoji = "🤖",
+            isOnline = true,
+            lastMessage = "Merhaba! Ben GEN AI. Kodlama, matematik, sohbet arama ve tüm sorularında hazırım.",
+            lastTime = nowTime,
+            unreadCount = 0,
+            isVerified = true,
+            customTheme = "CYBER_YELLOW",
+            messages = listOf(
+                DirectMessage(
+                    id = "m_ai_welcome",
+                    conversationId = "conv_gemini_ai",
+                    senderName = "GEN AI",
+                    isMe = false,
+                    text = "Merhaba! Ben GEN AI yapay zekâ asistanınım. Kod yazma, matematik, ders, çeviri veya sohbet geçmişinde mesaj bulma konusunda anında yardımcı olabilirim.",
+                    time = nowTime,
+                    timestamp = nowMs
+                )
             )
         )
-    ),
-    ConversationItem(
-        id = "conv_gen_support",
-        name = "GEN Destek Hattı",
-        initials = "GD",
-        avatarEmoji = "🛡️",
-        isOnline = true,
-        lastMessage = "GENeral Chat güvenli iletişim tüneline hoş geldiniz.",
-        lastTime = "Şimdi",
-        unreadCount = 1,
-        isVerified = true,
-        messages = listOf(
-            DirectMessage("m1", "conv_gen_support", "GEN Destek", false, "GENeral Chat v7.7.3 Pro merkezine hoş geldiniz.", "12:00"),
-            DirectMessage("m2", "conv_gen_support", "GEN Destek", false, "Uçtan uca şifreli (E2EE) tünel aktif. Sağ üstteki '+' ile yeni kişi veya 2. cihaz ekleyip doğrudan mesajlaşabilirsiniz.", "12:01")
-        )
     )
-)
+}
 
-val defaultCallHistory = listOf(
-    CallHistoryItem("c1", "GEN Destek Hattı", "GD", CallType.VOICE_OUTGOING, "Bugün", "01:18")
-)
-
+val defaultCallHistory: List<CallHistoryItem> = emptyList()

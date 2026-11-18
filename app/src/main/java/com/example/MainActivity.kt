@@ -1,9 +1,14 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -15,22 +20,35 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AppDatabase
 import com.example.data.AuthRepository
 import com.example.data.ChatRepository
+import com.example.data.CommunitiesRepository
 import com.example.ui.AuthViewModel
 import com.example.ui.AuthViewModelFactory
 import com.example.ui.ChatViewModel
@@ -83,16 +101,57 @@ class MainActivity : ComponentActivity() {
         // Looping Background Music initialization (Stabil Cyber Beat / Chill Ambient)
         com.example.util.BackgroundMusicManager.init(applicationContext)
 
+        // Load persisted custom communities
+        CommunitiesRepository.init(applicationContext)
+
+        // Load persisted wallpaper, speech, profanity filter, linked devices & parental control preferences
+        com.example.util.ChatWallpaperManager.init(applicationContext)
+        com.example.util.GenAiSpeechManager.init(applicationContext)
+        com.example.util.ParentalControlManager.init(applicationContext)
+        com.example.util.ProfanityFilter.init(applicationContext)
+        com.example.util.LinkedDevicesManager.init(applicationContext)
+        com.example.util.DisguiseManager.init(applicationContext)
+        com.example.util.NetworkConnectivityAndOfflineManager.init(applicationContext)
+
         val database = AppDatabase.getDatabase(applicationContext)
         val authRepository = AuthRepository(database.userDao())
         val chatRepository = ChatRepository(database.chatDao())
 
         setContent {
-            CompositionLocalProvider(LocalRefreshRateConfig provides refreshRateConfig) {
-                val authViewModel: AuthViewModel = viewModel(
-                    factory = AuthViewModelFactory(authRepository)
-                )
+            val authViewModel: AuthViewModel = viewModel(
+                factory = AuthViewModelFactory(authRepository)
+            )
 
+            LaunchedEffect(Unit) {
+                authViewModel.loadAppearancePreferences(applicationContext)
+                authViewModel.loadAppLockState(applicationContext)
+            }
+
+            val selectedLanguage by authViewModel.selectedLanguage.collectAsState()
+            LaunchedEffect(selectedLanguage.code) {
+                com.example.util.GenAiSpeechManager.setLanguageCode(selectedLanguage.code)
+            }
+            val appStrings = remember(selectedLanguage.code) {
+                com.example.util.AppTranslations.forCode(selectedLanguage.code)
+            }
+
+            val fontScaleFactor by authViewModel.fontScaleFactor.collectAsState()
+            val zoomEnabled by authViewModel.zoomEnabled.collectAsState()
+            val zoomScaleFactor by authViewModel.zoomScaleFactor.collectAsState()
+            val effectiveZoom = if (zoomEnabled) zoomScaleFactor else 1.0f
+            val baseDensity = LocalDensity.current
+            val scaledDensity = remember(baseDensity, fontScaleFactor, effectiveZoom) {
+                Density(
+                    density = baseDensity.density * effectiveZoom,
+                    fontScale = baseDensity.fontScale * fontScaleFactor
+                )
+            }
+
+            CompositionLocalProvider(
+                LocalRefreshRateConfig provides refreshRateConfig,
+                LocalDensity provides scaledDensity,
+                com.example.util.LocalAppStrings provides appStrings
+            ) {
                 val panicViewModel: com.example.ui.PanicViewModel = viewModel(
                     factory = com.example.ui.PanicViewModelFactory(applicationContext, chatRepository)
                 )
@@ -137,7 +196,56 @@ fun MainAppContent(
     val isPaperMode by authViewModel.isPaperMode.collectAsState()
     val panicConfig by authViewModel.panicConfig.collectAsState()
     val appLockPasscode by authViewModel.appLockPasscode.collectAsState()
+    val hasAppLock by authViewModel.hasAppLock.collectAsState()
+    val isPinLockMode by authViewModel.isPinLockMode.collectAsState()
+    val lockOnBackground by authViewModel.lockOnBackground.collectAsState()
+    val lockOnPanic by authViewModel.lockOnPanic.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        authViewModel.trySilentGoogleSignIn(context)
+    }
+
+    // Background Auto-Lock: Triggers 4-digit PIN / Lock screen whenever app goes to background (ON_STOP)
+    DisposableEffect(lifecycleOwner, lockOnBackground) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    val suppressed = com.example.data.SecurityUtils.consumeSuppressNextBackgroundLock() ||
+                        authViewModel.suppressNextBackgroundLock
+                    authViewModel.suppressNextBackgroundLock = false
+                    val lockConfigured = com.example.data.SecurityUtils.hasAppLockPasscode(context) ||
+                        !authViewModel.appLockPasscode.value.isNullOrBlank()
+                    val screen = authViewModel.currentScreen.value
+                    val isLockEligibleScreen = screen !is Screen.Splash &&
+                        screen !is Screen.Onboarding &&
+                        screen !is Screen.LanguagePicker &&
+                        screen !is Screen.Gate &&
+                        screen !is Screen.Login &&
+                        screen !is Screen.Register &&
+                        screen !is Screen.ForgotPassword &&
+                        screen !is Screen.VerifyCode &&
+                        screen !is Screen.ResetPassword &&
+                        screen !is Screen.AppLockSetup &&
+                        screen !is Screen.AppLockVerify
+                    if (!suppressed && lockConfigured && lockOnBackground && isLockEligibleScreen) {
+                        authViewModel.navigateTo(Screen.AppLockVerify)
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    authViewModel.suppressNextBackgroundLock = false
+                    com.example.data.SecurityUtils.suppressNextBackgroundLock = false
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(Unit) {
         authViewModel.snackbarEvents.collect { message ->
@@ -154,28 +262,92 @@ fun MainAppContent(
 
     LaunchedEffect(Unit) {
         panicViewModel.panicDisengageEvents.collect {
-            authViewModel.navigateTo(Screen.Chat)
+            val lockActive = com.example.data.SecurityUtils.hasAppLockPasscode(context) ||
+                !authViewModel.appLockPasscode.value.isNullOrBlank()
+            if (lockActive && authViewModel.lockOnPanic.value) {
+                authViewModel.navigateTo(Screen.AppLockVerify)
+            } else {
+                authViewModel.navigateTo(Screen.Chat)
+            }
         }
     }
 
-    // Global Panic button -> instant lock with passcode/biometric
+    // Global Panic button -> if user configured a PIN/app lock & lockOnPanic is enabled, lock screen; otherwise apply camouflage screen
     LaunchedEffect(Unit) {
         panicViewModel.panicLockEvents.collect {
-            if (authViewModel.appLockPasscode.value.isNullOrBlank()) {
-                authViewModel.appLockPasscode.value = "1234"
+            val lockActive = com.example.data.SecurityUtils.hasAppLockPasscode(context) ||
+                !authViewModel.appLockPasscode.value.isNullOrBlank()
+            if (lockActive && authViewModel.lockOnPanic.value) {
+                authViewModel.navigateTo(Screen.AppLockVerify)
+            } else {
+                authViewModel.navigateTo(Screen.CamouflageMask(panicConfig.targetMask))
             }
-            authViewModel.navigateTo(Screen.AppLockVerify)
+        }
+    }
+
+    var askedNotificationPermission by remember { mutableStateOf(false) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // Permission result handled gracefully; in-app HUD remains active regardless
+    }
+
+    val parentalState by com.example.util.ParentalControlManager.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60_000L)
+            com.example.util.ParentalControlManager.recordUsageMinute()
         }
     }
 
     LaunchedEffect(currentScreen) {
+        com.example.util.ParentalControlManager.logNavigationEvent(
+            screenName = currentScreen::class.simpleName ?: "Ekran",
+            action = "Açılış"
+        )
         if (currentScreen !is Screen.Splash) {
             SoundPoolManager.playMenuNav()
         }
+        if (currentScreen is Screen.Chat && !askedNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            askedNotificationPermission = true
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    if (parentalState.isMinorMode && parentalState.isScreenTimeLocked) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            title = {
+                androidx.compose.material3.Text(
+                    "⏳ Günlük Kullanım Süresi Doldu",
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                )
+            },
+            text = {
+                androidx.compose.material3.Text(
+                    "18 yaş altı Ebeveyn Denetimi aktif: Günlük ${parentalState.dailyLimitMinutes} dk limitine ulaşıldı (${parentalState.usedMinutesToday} dk kullanıldı). Eşleştirme Kodu: ${parentalState.childPairingCode}"
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = { com.example.util.ParentalControlManager.unlockScreenTimeByParent(30) }
+                ) {
+                    androidx.compose.material3.Text("Ebeveyn Onayı (+30 dk)")
+                }
+            }
+        )
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         androidx.compose.foundation.layout.Box(
@@ -187,27 +359,35 @@ fun MainAppContent(
                 targetState = currentScreen,
                 transitionSpec = {
                     (slideInHorizontally(
-                        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                        initialOffsetX = { fullWidth -> fullWidth / 4 }
+                        animationSpec = spring(dampingRatio = 0.90f, stiffness = Spring.StiffnessMedium),
+                        initialOffsetX = { fullWidth -> fullWidth / 5 }
                     ) + scaleIn(
-                        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                        initialScale = 0.94f
-                    ) + fadeIn(animationSpec = tween(180)))
+                        animationSpec = spring(dampingRatio = 0.90f, stiffness = Spring.StiffnessMedium),
+                        initialScale = 0.96f
+                    ) + fadeIn(animationSpec = tween(140)))
                     .togetherWith(
                         slideOutHorizontally(
-                            animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            targetOffsetX = { fullWidth -> -fullWidth / 4 }
+                            animationSpec = spring(dampingRatio = 0.90f, stiffness = Spring.StiffnessMedium),
+                            targetOffsetX = { fullWidth -> -fullWidth / 5 }
                         ) + scaleOut(
-                            animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            targetScale = 0.96f
-                        ) + fadeOut(animationSpec = tween(140))
+                            animationSpec = spring(dampingRatio = 0.90f, stiffness = Spring.StiffnessMedium),
+                            targetScale = 0.97f
+                        ) + fadeOut(animationSpec = tween(110))
                     )
                 },
                 label = "ScreenTransition"
             ) { screen ->
             when (screen) {
                 is Screen.Splash -> SplashScreen(
-                    onFinished = { authViewModel.navigateTo(Screen.Onboarding) }
+                    onFinished = {
+                        val lockActive = com.example.data.SecurityUtils.hasAppLockPasscode(context) ||
+                            !authViewModel.appLockPasscode.value.isNullOrBlank()
+                        if (lockActive) {
+                            authViewModel.navigateTo(Screen.AppLockVerify)
+                        } else {
+                            authViewModel.navigateTo(Screen.Onboarding)
+                        }
+                    }
                 )
                 is Screen.Onboarding -> OnboardingSlidesScreen(
                     onFinished = { authViewModel.navigateTo(Screen.LanguagePicker) }
@@ -222,11 +402,12 @@ fun MainAppContent(
                     onRegister = { authViewModel.navigateTo(Screen.Register) },
                     onLogin = { authViewModel.navigateTo(Screen.Login) },
                     onGuest = { authViewModel.navigateTo(Screen.Slogan) },
-                    onWipeData = { authViewModel.wipeAllData(database) }
+                    onGoogleSignIn = { authViewModel.signInWithGoogle(context, navigateToChatOnSuccess = true) },
+                    onWipeData = { authViewModel.wipeAllData(database, context) }
                 )
                 is Screen.Slogan -> SloganScreen(
                     onTriggerShatter = {
-                        if (appLockPasscode != null) {
+                        if (hasAppLock || appLockPasscode != null) {
                             authViewModel.navigateTo(Screen.AppLockVerify)
                         } else {
                             authViewModel.navigateTo(Screen.Chat)
@@ -235,23 +416,26 @@ fun MainAppContent(
                 )
                 is Screen.AppLockSetup -> AppLockScreen(
                     isSetupMode = true,
+                    initialPinMode = true,
                     onLockPassed = { newPasscode ->
-                        authViewModel.appLockPasscode.value = newPasscode
+                        val isPin = newPasscode.length == 4 && newPasscode.all { it.isDigit() }
+                        authViewModel.setAppLockPasscode(context, newPasscode, isPinMode = isPin)
+                        authViewModel.navigateTo(Screen.Chat)
+                    },
+                    onCancel = {
                         authViewModel.navigateTo(Screen.Chat)
                     }
                 )
                 is Screen.AppLockVerify -> AppLockScreen(
                     isSetupMode = false,
+                    initialPinMode = isPinLockMode,
                     currentPasscode = appLockPasscode.orEmpty(),
+                    onVerifyPasscode = { entered -> authViewModel.verifyAppLockPasscode(context, entered) },
                     onLockPassed = {
                         authViewModel.navigateTo(Screen.Chat)
                     },
-                    onResetLock = {
-                        authViewModel.appLockPasscode.value = null
-                        authViewModel.navigateTo(Screen.Chat)
-                    },
                     onWipeData = {
-                        authViewModel.wipeAllData(database)
+                        authViewModel.selfDestructOnForgottenLock(context, database)
                     }
                 )
                 is Screen.Chat -> ChatScreen(
@@ -259,7 +443,7 @@ fun MainAppContent(
                     authViewModel = authViewModel,
                     currentUser = currentUser,
                     isPaperMode = isPaperMode,
-                    onTogglePaperMode = { authViewModel.togglePaperMode() },
+                    onTogglePaperMode = { authViewModel.togglePaperMode(context) },
                     onTriggerPanic = { panicViewModel.triggerPanicOverride() },
                     onTriggerGlobalPanic = { panicViewModel.triggerGlobalPanicLock() },
                     onSelectMask = { mask -> authViewModel.navigateTo(Screen.CamouflageMask(mask)) },
@@ -283,7 +467,10 @@ fun MainAppContent(
                         authViewModel.navigateTo(Screen.Splash)
                     },
                     onWipeAllData = {
-                        authViewModel.wipeAllData(database)
+                        authViewModel.wipeAllData(database, context)
+                    },
+                    onDeleteCloudAccount = { onDone ->
+                        authViewModel.deleteCloudAccountAndAllData(context, database, onDone)
                     }
                 )
                 is Screen.MiniGames -> MiniGamesScreen(
@@ -293,7 +480,13 @@ fun MainAppContent(
                     maskType = screen.maskType,
                     onSecretExit = {
                         panicViewModel.disengagePanic()
-                        authViewModel.navigateTo(Screen.Chat)
+                        val lockActive = com.example.data.SecurityUtils.hasAppLockPasscode(context) ||
+                            !authViewModel.appLockPasscode.value.isNullOrBlank()
+                        if (lockActive && authViewModel.lockOnPanic.value) {
+                            authViewModel.navigateTo(Screen.AppLockVerify)
+                        } else {
+                            authViewModel.navigateTo(Screen.Chat)
+                        }
                     }
                 )
                 is Screen.PanicWizard -> PanicConfigScreen(
@@ -313,14 +506,14 @@ fun MainAppContent(
                 )
                 is Screen.AboutSupport -> AboutSupportScreen(
                     onBack = { authViewModel.navigateTo(Screen.Chat) },
-                    onWipeAllData = { authViewModel.wipeAllData(database) }
+                    onWipeAllData = { authViewModel.wipeAllData(database, context) }
                 )
                 is Screen.AppShowcase -> AppShowcaseScreen(
                     onBack = { authViewModel.navigateTo(Screen.Chat) }
                 )
                 is Screen.Login -> LoginScreen(
                     viewModel = authViewModel,
-                    onWipeData = { authViewModel.wipeAllData(database) }
+                    onWipeData = { authViewModel.wipeAllData(database, context) }
                 )
                 is Screen.Register -> RegisterScreen(viewModel = authViewModel)
                 is Screen.ForgotPassword -> ForgotPasswordScreen(viewModel = authViewModel)
@@ -342,7 +535,9 @@ fun MainAppContent(
         }
 
         com.example.ui.components.InstantNotificationHud(
-            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.TopCenter)
+                .statusBarsPadding()
         )
     }
 }

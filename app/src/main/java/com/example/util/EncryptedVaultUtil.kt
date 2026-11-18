@@ -33,8 +33,12 @@ object EncryptedVaultUtil {
         context: Context,
         chatTitle: String,
         messages: List<Pair<String, String>>, // sender, text
-        passphrase: String = "GENERAL_CHAT_E2EE_VAULT_KEY"
+        passphrase: String
     ): VaultExportResult {
+        val cleanPassphrase = passphrase.trim()
+        require(cleanPassphrase.length >= 6) {
+            "Şifreleme parolası en az 6 karakter olmalıdır."
+        }
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val nowStr = dateFormat.format(Date())
 
@@ -50,7 +54,7 @@ object EncryptedVaultUtil {
         }
 
         val rawText = rawBuilder.toString()
-        val keySpec = deriveKey(passphrase)
+        val keySpec = deriveKey(cleanPassphrase)
 
         val ivBytes = ByteArray(16)
         SecureRandom().nextBytes(ivBytes)
@@ -69,7 +73,7 @@ object EncryptedVaultUtil {
 
         val vaultPayload = buildString {
             append("----- BEGIN GENERAL CHAT ENCRYPTED VAULT (AES-256) -----\n")
-            append("PROTOCOL: GENERAL_CHAT_v7.7.3_E2EE\n")
+            append("PROTOCOL: GENERAL_CHAT_LOCAL_AES256\n")
             append("TIMESTAMP: $nowStr\n")
             append("CONVERSATION: $chatTitle\n")
             append("MESSAGE_COUNT: ${messages.size}\n")

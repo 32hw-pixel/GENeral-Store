@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,6 +57,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -246,9 +251,17 @@ fun FloatingCyberWidget(
                                                 Box(
                                                     modifier = Modifier
                                                         .weight(1f)
-                                                        .height(28.dp)
+                                                        .heightIn(min = 48.dp)
                                                         .clip(RoundedCornerShape(4.dp))
                                                         .background(if (btn == "=" || btn == "C") CyberYellow else CyberCardBg)
+                                                        .semantics {
+                                                            role = Role.Button
+                                                            contentDescription = when (btn) {
+                                                                "C" -> "Hesap makinesini temizle"
+                                                                "=" -> "Hesapla"
+                                                                else -> "Tuş $btn"
+                                                            }
+                                                        }
                                                         .clickable {
                                                             SoundPoolManager.playMechanicalClick()
                                                             when (btn) {
@@ -289,7 +302,7 @@ fun FloatingCyberWidget(
                                         .fillMaxWidth()
                                         .padding(4.dp)
                                 ) {
-                                    Text("⚡ E2EE Tünel Durumu: Aktif (256-bit)", color = NeonGreen, fontSize = 11.sp)
+                                    Text("⚡ TLS Bağlantısı: Aktif", color = NeonGreen, fontSize = 11.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text("🛰️ Küresel Frekans: Senkronize", color = NeonCyan, fontSize = 11.sp)
                                     Spacer(modifier = Modifier.height(4.dp))

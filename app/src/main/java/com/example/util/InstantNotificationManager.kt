@@ -42,7 +42,7 @@ object InstantNotificationManager {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "GENeral Chat uçtan uca şifreli mesaj ve güvenlik bildirimleri"
+                description = "GENeral Chat mesaj, arama ve güvenlik bildirimleri"
                 enableVibration(true)
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -68,18 +68,29 @@ object InstantNotificationManager {
         _currentNotification.value = notification
         SoundPoolManager.playNotification()
 
-        // Android System Notification Dispatch
+        // Android System Notification Dispatch (with Android 13+ POST_NOTIFICATIONS check)
         appContext?.let { ctx ->
             try {
-                val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_dialog_info)
-                    .setContentTitle("$iconEmoji $title")
-                    .setContentText(message)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(true)
+                val canPostSystemNotification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        ctx,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
 
-                notificationManager.notify((System.currentTimeMillis() % 10000).toInt(), builder.build())
+                if (canPostSystemNotification) {
+                    val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
+                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setContentTitle("$iconEmoji $title")
+                        .setContentText(message)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true)
+
+                    notificationManager.notify((System.currentTimeMillis() % 10000).toInt(), builder.build())
+                }
             } catch (_: Exception) {
                 // Ignore missing system notification permissions gracefully
             }

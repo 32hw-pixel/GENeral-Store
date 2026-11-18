@@ -69,28 +69,25 @@ data class FriendContact(
     val avatarEmoji: String
 )
 
-val defaultAvailableFriends = listOf(
-    FriendContact("u1", "Eren Developer", "@eren_dev", "⚡"),
-    FriendContact("u2", "Ayşe Güvenlik Uzmanı", "@ayse_sec", "🛡️"),
-    FriendContact("u3", "Mehmet Yapay Zekâ", "@mehmet_ai", "🤖"),
-    FriendContact("u4", "Zeynep Cloud Mimarı", "@zeynep_cloud", "☁️"),
-    FriendContact("u5", "GENeral Resmi Destek", "@general_ytb", "👑"),
-    FriendContact("u6", "Canberk Siber Savunma", "@canberk_def", "🎯")
-)
-
 @Composable
 fun CreateGroupDialog(
+    availableContacts: List<FriendContact> = emptyList(),
     onGroupCreated: (ConversationItem) -> Unit,
     onDismiss: () -> Unit,
     isPaper: Boolean
 ) {
     var groupName by remember { mutableStateOf("") }
-    var groupDescription by remember { mutableStateOf("") }
+    var customMemberInput by remember { mutableStateOf("") }
+    val customMembers = remember { mutableStateListOf<FriendContact>() }
     val selectedFriendIds = remember { mutableStateListOf<String>() }
+
+    val allContacts = remember(availableContacts, customMembers.toList()) {
+        (customMembers + availableContacts).distinctBy { it.username.lowercase() }
+    }
 
     val cardBg = if (isPaper) Color(0xFFF7F4EE) else CyberCardBg
     val textColor = if (isPaper) Color(0xFF1E1C1A) else Color.White
-    val textMutedColor = if (isPaper) Color(0xFF8A8275) else TextSecondary
+    val textMutedColor = if (isPaper) Color(0xFF5A554C) else TextSecondary
     val borderColor = if (isPaper) Color(0xFFDCD5C9) else CyberYellow.copy(alpha = 0.7f)
     val accentColor = if (isPaper) Color(0xFF1E1C1A) else CyberYellow
 
@@ -117,7 +114,7 @@ fun CreateGroupDialog(
                         color = textColor
                     )
                     Text(
-                        text = "Çoklu kişi desteği · E2EE Grup Anahtarı",
+                        text = "Gerçek kişilerinizle TLS korumalı grup sohbeti kurun",
                         fontSize = 11.sp,
                         color = textMutedColor
                     )
@@ -130,7 +127,7 @@ fun CreateGroupDialog(
                     value = groupName,
                     onValueChange = { groupName = it },
                     label = { Text("Grup Adı", fontSize = 12.sp) },
-                    placeholder = { Text("Örn: Siber Tim Operasyonu", color = textMutedColor, fontSize = 12.sp) },
+                    placeholder = { Text("Örn: Proje Ekibi", color = textMutedColor, fontSize = 12.sp) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -144,8 +141,56 @@ fun CreateGroupDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = customMemberInput,
+                        onValueChange = { customMemberInput = it },
+                        label = { Text("Üye Ekle (@kullanici)", fontSize = 11.sp) },
+                        placeholder = { Text("@kullanici_adi", color = textMutedColor, fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            unfocusedBorderColor = borderColor,
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Button(
+                        onClick = {
+                            val clean = customMemberInput.trim()
+                            if (clean.isNotBlank()) {
+                                val handle = if (clean.startsWith("@")) clean else "@${clean.lowercase().replace(" ", "_")}"
+                                val newId = "custom_${System.currentTimeMillis()}"
+                                val member = FriendContact(
+                                    id = newId,
+                                    name = clean.removePrefix("@"),
+                                    username = handle,
+                                    avatarEmoji = "👤"
+                                )
+                                customMembers.add(0, member)
+                                if (newId !in selectedFriendIds) selectedFriendIds.add(newId)
+                                customMemberInput = ""
+                                SoundPoolManager.playMechanicalClick()
+                            }
+                        },
+                        enabled = customMemberInput.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Ekle", color = if (isPaper) Color.White else CyberBlack, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Text(
-                    text = "Grup Üyelerini Seçin (${selectedFriendIds.size} seçildi):",
+                    text = "Seçilen Üyeler (${selectedFriendIds.size}):",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
@@ -153,76 +198,85 @@ fun CreateGroupDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 220.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items(defaultAvailableFriends) { friend ->
-                        val isSelected = friend.id in selectedFriendIds
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) {
-                                        if (isPaper) Color(0xFFD6CEBF) else Color(0xFF262000)
-                                    } else {
-                                        if (isPaper) Color(0xFFECE6DA) else CyberBlack
+                if (allContacts.isEmpty()) {
+                    Text(
+                        text = "Henüz ekli kişi yok. Yukarıdan @kullanici_adi girip 'Ekle' diyebilirsiniz veya tek başınıza grup başlatabilirsiniz.",
+                        fontSize = 11.sp,
+                        color = textMutedColor,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(allContacts, key = { it.id }) { friend ->
+                            val isSelected = friend.id in selectedFriendIds
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) {
+                                            if (isPaper) Color(0xFFD6CEBF) else Color(0xFF262000)
+                                        } else {
+                                            if (isPaper) Color(0xFFECE6DA) else CyberBlack
+                                        }
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) accentColor else borderColor,
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        SoundPoolManager.playMechanicalClick()
+                                        if (isSelected) selectedFriendIds.remove(friend.id)
+                                        else selectedFriendIds.add(friend.id)
                                     }
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSelected) accentColor else borderColor,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .clickable {
-                                    SoundPoolManager.playMechanicalClick()
-                                    if (isSelected) selectedFriendIds.remove(friend.id)
-                                    else selectedFriendIds.add(friend.id)
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isPaper) Color.White else Color(0xFF141414)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(friend.avatarEmoji, fontSize = 16.sp)
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = friend.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = textColor
+                                        )
+                                        Text(
+                                            text = friend.username,
+                                            fontSize = 10.sp,
+                                            color = NeonCyan
+                                        )
+                                    }
                                 }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isPaper) Color.White else Color(0xFF141414)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(friend.avatarEmoji, fontSize = 16.sp)
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = friend.name,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = textColor
-                                    )
-                                    Text(
-                                        text = friend.username,
-                                        fontSize = 10.sp,
-                                        color = NeonCyan
-                                    )
-                                }
-                            }
 
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = {
-                                    if (it) selectedFriendIds.add(friend.id)
-                                    else selectedFriendIds.remove(friend.id)
-                                },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = accentColor,
-                                    uncheckedColor = borderColor
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = {
+                                        if (it) selectedFriendIds.add(friend.id)
+                                        else selectedFriendIds.remove(friend.id)
+                                    },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = accentColor,
+                                        uncheckedColor = borderColor
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -232,28 +286,30 @@ fun CreateGroupDialog(
             Button(
                 onClick = {
                     val cleanName = groupName.trim()
-                    if (cleanName.isNotBlank() && selectedFriendIds.isNotEmpty()) {
-                        val memberNames = defaultAvailableFriends
+                    if (cleanName.isNotBlank()) {
+                        val memberNames = allContacts
                             .filter { it.id in selectedFriendIds }
                             .map { it.name }
+                        val groupId = "grp_${System.currentTimeMillis()}"
+                        val summaryMembers = if (memberNames.isEmpty()) "Kurucu (Siz)" else "Sen, ${memberNames.joinToString(", ")}"
                         val newGroup = ConversationItem(
-                            id = "grp_${System.currentTimeMillis()}",
+                            id = groupId,
                             name = cleanName,
                             initials = cleanName.take(2).uppercase(),
                             username = "@grup_${cleanName.lowercase().replace(" ", "_").take(10)}",
                             avatarEmoji = "👥",
                             isGroup = true,
                             isOnline = true,
-                            lastMessage = "Grup oluşturuldu. Üyeler: ${memberNames.joinToString(", ")}",
+                            lastMessage = "Grup oluşturuldu. Üyeler: $summaryMembers",
                             lastTime = "Şimdi",
                             isVerified = true,
                             messages = listOf(
                                 DirectMessage(
                                     id = "gm_init",
-                                    conversationId = "grp_${System.currentTimeMillis()}",
+                                    conversationId = groupId,
                                     senderName = "Sistem",
                                     isMe = false,
-                                    text = "👥 '$cleanName' grubu oluşturuldu. Uçtan uca şifreli (E2EE) grup anahtarı dağıtıldı. Üyeler: Sen, ${memberNames.joinToString(", ")}",
+                                    text = "👥 '$cleanName' grubu oluşturuldu. Üyeler: $summaryMembers",
                                     time = "Şimdi"
                                 )
                             )
@@ -263,7 +319,7 @@ fun CreateGroupDialog(
                         onDismiss()
                     }
                 },
-                enabled = groupName.trim().isNotBlank() && selectedFriendIds.isNotEmpty(),
+                enabled = groupName.trim().isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = accentColor)
             ) {
                 Text("Grubu Oluştur", color = if (isPaper) Color.White else CyberBlack, fontWeight = FontWeight.Bold)

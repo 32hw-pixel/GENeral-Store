@@ -27,10 +27,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Campaign
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.HowToVote
-import androidx.compose.material.icons.filled.Podcasts
 import androidx.compose.material.icons.filled.Radar
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,22 +41,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.ChannelPoll
-import com.example.data.PollOption
 import com.example.ui.theme.CyberBlack
 import com.example.ui.theme.CyberCardBg
 import com.example.ui.theme.CyberCardBorder
@@ -74,21 +65,6 @@ fun OfficialChannelScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var activePoll by remember {
-        mutableStateOf(
-            ChannelPoll(
-                id = "poll_1",
-                question = "GENeral Chat v7.7.3 Pro'da en çok hangi gizlilik özelliğini kullanıyorsunuz?",
-                options = listOf(
-                    PollOption(1, "Kağıt Ekran (Paper Mode)", 342),
-                    PollOption(2, "10 Çeşit Gizlilik Maskeleme (Hesap Makinesi/Hava Durumu)", 894),
-                    PollOption(3, "Sallayarak Tetiklenen Panik Butonu", 612),
-                    PollOption(4, "Uçtan Uca Şifreli E2EE Güvenlik", 458)
-                )
-            )
-        )
-    }
-
     val infiniteTransition = rememberInfiniteTransition(label = "radar_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.8f,
@@ -193,12 +169,12 @@ fun OfficialChannelScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(
-                                text = "Canlı Operasyon Radarı",
+                                text = "Kanal Durumu",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary
                             )
                             Text(
-                                text = "14,920 Çevrimiçi Operatör",
+                                text = "Resmi Bilgilendirme & Topluluk Kanalı",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 color = NeonGreen
@@ -242,7 +218,7 @@ fun OfficialChannelScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "GENeral Chat v7.7.3 Pro Master Yol Haritası başarıyla devreye alındı! Duvarlar ve sınırlar kalktı. Uçtan uca şifreli altyapımız, 10 gizlilik maskemiz ve Kağıt Ekran (Paper Mode) ile tam kontrol artık sizde.",
+                        text = "GENeral Chat v7.7.3 Pro Master Yol Haritası başarıyla devreye alındı! TLS korumalı bulut altyapımız, ekran gizlilik maskelerimiz ve Kağıt Ekran (Paper Mode) ile tam kontrol artık sizde.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White,
                         lineHeight = 22.sp
@@ -252,7 +228,7 @@ fun OfficialChannelScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Interactive Poll Card
+            // Verified KVKK & Security Transparency Card (replaces removed mock poll)
             Card(
                 colors = CardDefaults.cardColors(containerColor = CyberCardBg),
                 shape = RoundedCornerShape(16.dp),
@@ -263,111 +239,26 @@ fun OfficialChannelScreen(
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.HowToVote,
+                            imageVector = Icons.Default.Security,
                             contentDescription = null,
-                            tint = NeonPurple,
+                            tint = NeonGreen,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Resmi Topluluk Anketi",
+                            text = "Şeffaflık, KVKK (6698) & Güncellemeler",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = NeonPurple
+                            color = NeonGreen
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = activePoll.question,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val totalVotes = activePoll.options.sumOf { it.votes }
-
-                    activePoll.options.forEach { opt ->
-                        val isVoted = activePoll.userVotedOptionId == opt.id
-                        val percent = if (totalVotes > 0) (opt.votes * 100 / totalVotes) else 0
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0F1A2E))
-                                .border(
-                                    1.dp,
-                                    if (isVoted) NeonCyan else Color(0xFF223254),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable {
-                                    if (activePoll.userVotedOptionId == null) {
-                                        opt.votes += 1
-                                        activePoll = activePoll.copy(userVotedOptionId = opt.id)
-                                    }
-                                }
-                        ) {
-                            // Progress bar
-                            if (activePoll.userVotedOptionId != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(fraction = percent / 100f)
-                                        .height(48.dp)
-                                        .background(if (isVoted) NeonCyan.copy(alpha = 0.25f) else NeonPurple.copy(alpha = 0.15f))
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    if (isVoted) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = NeonCyan,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                    }
-                                    Text(
-                                        text = opt.text,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (isVoted) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isVoted) NeonCyan else Color.White
-                                    )
-                                }
-
-                                if (activePoll.userVotedOptionId != null) {
-                                    Text(
-                                        text = "%$percent",
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isVoted) NeonCyan else TextSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
                     Spacer(modifier = Modifier.height(10.dp))
-
                     Text(
-                        text = "Toplam $totalVotes oy kullanıldı",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted
+                        text = "• Tüm canlı mesajlaşma, görüntülü/sesli aramalar ve konum paylaşımları yalnızca kullanıcının açık izniyle gerçek zamanlı olarak gerçekleştirilir.\n" +
+                            "• Ayarlar > Gizlilik, KVKK ve Uyumluluk ekranından verilerinizi dışa aktarabilir, düzeltebilir veya kalıcı olarak silebilirsiniz.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                        lineHeight = 20.sp
                     )
                 }
             }

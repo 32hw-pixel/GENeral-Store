@@ -103,13 +103,13 @@ fun LanguagePickerScreen(
     val scope = rememberCoroutineScope()
     var showAudioDialog by remember { mutableStateOf(false) }
 
+    var currentStep by remember { mutableIntStateOf(0) } // 0 = Country, 1 = Language
     var selectedCountryIndex by remember { mutableIntStateOf(0) }
     var selectedLanguageIndex by remember { mutableIntStateOf(0) }
 
     val countryListState = rememberLazyListState(initialFirstVisibleItemIndex = 0)
     val languageListState = rememberLazyListState(initialFirstVisibleItemIndex = 0)
 
-    // Listen to country scroll changes & play crisp tick sound
     LaunchedEffect(countryListState) {
         var last = countryListState.firstVisibleItemIndex
         snapshotFlow { countryListState.firstVisibleItemIndex }.collect { index ->
@@ -121,7 +121,6 @@ fun LanguagePickerScreen(
         }
     }
 
-    // Listen to language scroll changes & play crisp tick sound
     LaunchedEffect(languageListState) {
         var last = languageListState.firstVisibleItemIndex
         snapshotFlow { languageListState.firstVisibleItemIndex }.collect { index ->
@@ -132,6 +131,10 @@ fun LanguagePickerScreen(
             }
         }
     }
+
+    val previewLang = defaultLanguages.getOrElse(selectedLanguageIndex) { defaultLanguages[0] }
+    val strings = com.example.util.AppTranslations.forCode(previewLang.code)
+    val selectedCountry = defaultCountries.getOrElse(selectedCountryIndex) { defaultCountries[0] }
 
     val bgColor = if (isPaper) PaperBg else CyberBlack
     val cardBg = if (isPaper) PaperSurface else CyberCardBg
@@ -164,7 +167,6 @@ fun LanguagePickerScreen(
                 )
             }
 
-            // Header Icon
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -183,8 +185,35 @@ fun LanguagePickerScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // 2-Step Indicator Pills
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("1 · Ülke", "2 · Dil").forEachIndexed { stepIdx, stepLabel ->
+                    val active = currentStep == stepIdx
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(if (active) accentColor else cardBg)
+                            .border(1.dp, if (active) accentColor else borderColor, RoundedCornerShape(99.dp))
+                            .clickable { currentStep = stepIdx }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = stepLabel,
+                            color = if (active) (if (isPaper) PaperBg else CyberBlack) else textMutedColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
-                text = "Küresel Frekansı Ayarla",
+                text = if (currentStep == 0) strings.langStepCountryTitle else strings.langStepLanguageTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
                 color = textColor,
@@ -194,7 +223,7 @@ fun LanguagePickerScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Sistem dilini ve bulunduğun ülkeyi seç. Arayüz anında seçtiğin frekansa kilitlenecek.",
+                text = if (currentStep == 0) strings.langStepCountrySub else strings.langStepLanguageSub,
                 style = MaterialTheme.typography.bodySmall,
                 color = textMutedColor,
                 textAlign = TextAlign.Center,
@@ -204,143 +233,136 @@ fun LanguagePickerScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Dual Roller Wheel Layout (Country & Language Separated)
-            Row(
+            // Separated Single-Focus Picker per Step
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxWidth()
             ) {
-                // COLUMN 1: ÜLKE SEÇİCİ
-                WheelContainer(
-                    title = "BULUNDUĞUN ÜLKE",
-                    accentColor = accentColor,
-                    cardBg = cardBg,
-                    borderColor = borderColor,
-                    isPaper = isPaper,
-                    onStepUp = {
-                        val target = (selectedCountryIndex - 1).coerceAtLeast(0)
-                        scope.launch {
-                            countryListState.animateScrollToItem(target)
+                if (currentStep == 0) {
+                    WheelContainer(
+                        title = "ADIM 1 · BULUNDUĞUN ÜLKE (${selectedCountry.flag} ${selectedCountry.name})",
+                        accentColor = accentColor,
+                        cardBg = cardBg,
+                        borderColor = borderColor,
+                        isPaper = isPaper,
+                        onStepUp = {
+                            val target = (selectedCountryIndex - 1).coerceAtLeast(0)
+                            selectedCountryIndex = target
+                            scope.launch { countryListState.animateScrollToItem(target) }
+                        },
+                        onStepDown = {
+                            val target = (selectedCountryIndex + 1).coerceAtMost(defaultCountries.size - 1)
+                            selectedCountryIndex = target
+                            scope.launch { countryListState.animateScrollToItem(target) }
                         }
-                    },
-                    onStepDown = {
-                        val target = (selectedCountryIndex + 1).coerceAtMost(defaultCountries.size - 1)
-                        scope.launch {
-                            countryListState.animateScrollToItem(target)
-                        }
-                    }
-                ) {
-                    LazyColumn(
-                        state = countryListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(defaultCountries.size) { index ->
-                            val country = defaultCountries[index]
-                            val isSelected = index == selectedCountryIndex
+                        LazyColumn(
+                            state = countryListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            items(defaultCountries.size) { index ->
+                                val country = defaultCountries[index]
+                                val isSelected = index == selectedCountryIndex
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isSelected) {
-                                            if (isPaper) PaperBorder else CyberYellowContainer.copy(alpha = 0.7f)
-                                        } else Color.Transparent
-                                    )
-                                    .clickable {
-                                        SoundPoolManager.playMechanicalClick()
-                                        scope.launch {
-                                            countryListState.animateScrollToItem(index)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) {
+                                                if (isPaper) PaperBorder else CyberYellowContainer.copy(alpha = 0.75f)
+                                            } else Color.Transparent
+                                        )
+                                        .clickable {
+                                            selectedCountryIndex = index
+                                            SoundPoolManager.playMechanicalClick()
+                                            scope.launch { countryListState.animateScrollToItem(index) }
                                         }
-                                    }
-                                    .padding(horizontal = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = country.flag, fontSize = 18.sp)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = country.name,
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                        color = if (isSelected) textColor else textMutedColor,
-                                        fontSize = if (isSelected) 13.sp else 11.sp,
-                                        maxLines = 1
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(text = country.flag, fontSize = 20.sp)
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "${country.name} (${country.code})",
+                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
+                                            color = if (isSelected) textColor else textMutedColor,
+                                            fontSize = if (isSelected) 15.sp else 13.sp,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-
-                // COLUMN 2: DİL SEÇİCİ
-                WheelContainer(
-                    title = "SİSTEM DİLİ",
-                    accentColor = if (isPaper) PaperText else NeonCyan,
-                    cardBg = cardBg,
-                    borderColor = borderColor,
-                    isPaper = isPaper,
-                    onStepUp = {
-                        val target = (selectedLanguageIndex - 1).coerceAtLeast(0)
-                        scope.launch {
-                            languageListState.animateScrollToItem(target)
+                } else {
+                    WheelContainer(
+                        title = "ADIM 2 · SİSTEM DİLİ (${previewLang.flag} ${previewLang.languageName})",
+                        accentColor = if (isPaper) PaperText else NeonCyan,
+                        cardBg = cardBg,
+                        borderColor = borderColor,
+                        isPaper = isPaper,
+                        onStepUp = {
+                            val target = (selectedLanguageIndex - 1).coerceAtLeast(0)
+                            selectedLanguageIndex = target
+                            scope.launch { languageListState.animateScrollToItem(target) }
+                        },
+                        onStepDown = {
+                            val target = (selectedLanguageIndex + 1).coerceAtMost(defaultLanguages.size - 1)
+                            selectedLanguageIndex = target
+                            scope.launch { languageListState.animateScrollToItem(target) }
                         }
-                    },
-                    onStepDown = {
-                        val target = (selectedLanguageIndex + 1).coerceAtMost(defaultLanguages.size - 1)
-                        scope.launch {
-                            languageListState.animateScrollToItem(target)
-                        }
-                    }
-                ) {
-                    LazyColumn(
-                        state = languageListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(defaultLanguages.size) { index ->
-                            val lang = defaultLanguages[index]
-                            val isSelected = index == selectedLanguageIndex
+                        LazyColumn(
+                            state = languageListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            items(defaultLanguages.size) { index ->
+                                val lang = defaultLanguages[index]
+                                val isSelected = index == selectedLanguageIndex
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isSelected) {
-                                            if (isPaper) PaperBorder else Color(0xFF0E2235)
-                                        } else Color.Transparent
-                                    )
-                                    .clickable {
-                                        SoundPoolManager.playMechanicalClick()
-                                        scope.launch {
-                                            languageListState.animateScrollToItem(index)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) {
+                                                if (isPaper) PaperBorder else Color(0xFF0E2235)
+                                            } else Color.Transparent
+                                        )
+                                        .clickable {
+                                            selectedLanguageIndex = index
+                                            SoundPoolManager.playMechanicalClick()
+                                            scope.launch { languageListState.animateScrollToItem(index) }
                                         }
-                                    }
-                                    .padding(horizontal = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = lang.flag, fontSize = 18.sp)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = lang.languageName,
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                        color = if (isSelected) (if (isPaper) PaperText else NeonCyan) else textMutedColor,
-                                        fontSize = if (isSelected) 13.sp else 11.sp,
-                                        maxLines = 1
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(text = lang.flag, fontSize = 20.sp)
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = lang.languageName,
+                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
+                                            color = if (isSelected) (if (isPaper) PaperText else NeonCyan) else textMutedColor,
+                                            fontSize = if (isSelected) 15.sp else 13.sp,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -350,23 +372,59 @@ fun LanguagePickerScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Action Button: Asphalt Style Bounce Press
-            CyberTechButton(
-                text = "[ FREKANSI SABİTLE VE İLERLE ]",
-                containerColor = if (isPaper) PaperText else CyberYellow,
-                contentColor = if (isPaper) PaperBg else CyberBlack,
-                borderColor = accentColor,
-                testTag = "confirm_language_button",
-                onClick = {
-                    SoundPoolManager.playConfirm()
-                    val selectedLang = defaultLanguages.getOrElse(selectedLanguageIndex) { defaultLanguages[0] }
-                    onLanguageSelected(selectedLang)
+            if (currentStep == 0) {
+                CyberTechButton(
+                    text = strings.nextStepBtn,
+                    containerColor = if (isPaper) PaperText else CyberYellow,
+                    contentColor = if (isPaper) PaperBg else CyberBlack,
+                    borderColor = accentColor,
+                    testTag = "country_next_step_button",
+                    onClick = {
+                        SoundPoolManager.playConfirm()
+                        val matchedLangIdx = defaultLanguages.indexOfFirst {
+                            it.code.equals(selectedCountry.code, ignoreCase = true)
+                        }
+                        if (matchedLangIdx >= 0) {
+                            selectedLanguageIndex = matchedLangIdx
+                        }
+                        currentStep = 1
+                    }
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            SoundPoolManager.playMenuNav()
+                            currentStep = 0
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, borderColor),
+                        modifier = Modifier.height(52.dp)
+                    ) {
+                        Text(strings.backStepBtn, color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        CyberTechButton(
+                            text = strings.applyLanguageBtn,
+                            containerColor = if (isPaper) PaperText else CyberYellow,
+                            contentColor = if (isPaper) PaperBg else CyberBlack,
+                            borderColor = accentColor,
+                            testTag = "confirm_language_button",
+                            onClick = {
+                                SoundPoolManager.playConfirm()
+                                val selectedLang = previewLang.copy(countryName = selectedCountry.name)
+                                onLanguageSelected(selectedLang)
+                            }
+                        )
+                    }
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Audio Status Indicator
             CyberAudioStatusBar(
                 onOpenAudioCenter = { showAudioDialog = true }
             )

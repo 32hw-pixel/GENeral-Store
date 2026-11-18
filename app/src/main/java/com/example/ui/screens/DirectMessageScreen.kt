@@ -1,12 +1,18 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.location.LocationManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -14,10 +20,13 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +37,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +46,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -43,95 +54,85 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.rememberDatePickerState
-import androidx.core.content.ContextCompat
-import com.example.util.VoiceNoteRecorder
-import com.google.firebase.Firebase
-import com.google.firebase.ai.ai
-import com.google.firebase.ai.type.content
-import java.io.File
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.OpenInNew
-import com.example.util.CloudMessagingManager
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Reply
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wallpaper
-import com.example.data.ScheduledMessage
-import com.example.ui.components.ChatAiSummaryDialog
-import com.example.ui.components.ChatMediaGalleryDialog
-import com.example.ui.components.ContactProfileDialog
-import com.example.ui.components.ExportChatDialog
-import com.example.ui.components.OfflineP2PTunnelDialog
-import com.example.ui.components.QuickActionBar
-import com.example.ui.components.ScheduleMessageDialog
-import com.example.ui.components.ScheduledMessagesListDialog
-import com.example.ui.theme.ChatThemePalette
-import com.example.ui.theme.ChatThemePresets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import android.widget.Toast
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -142,30 +143,70 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import android.util.Log
+import com.example.data.AiClassifiedError
+import com.example.data.AiErrorClassifier
+import com.example.data.AiMode
+import com.example.data.AiServiceConfig
+import com.example.data.AiTurnHistory
+import com.example.data.CloudLiveLocation
 import com.example.data.ConversationItem
 import com.example.data.DirectMessage
+import com.example.data.FirebaseAiCloudClient
+import com.example.data.FirestoreChatRepository
+import com.example.data.ScheduledMessage
+import com.example.data.formatByteSize
+import com.example.data.formatChatDayHeader
+import com.example.data.formatClockTime
+import com.example.data.isSameCalendarDay
+import com.example.ui.components.ChatAiSummaryDialog
+import com.example.ui.components.ChatMediaGalleryDialog
 import com.example.ui.components.ChatWallpaperBackground
+import com.example.ui.components.ContactProfileDialog
+import com.example.ui.components.ExportChatDialog
 import com.example.ui.components.MusicSettingsDialog
+import com.example.ui.components.OfflineP2PTunnelDialog
+import com.example.ui.components.ScheduleMessageDialog
+import com.example.ui.components.ScheduledMessagesListDialog
+import com.example.ui.components.ServiceStatusDashboardCard
 import com.example.ui.components.WallpaperSettingsDialog
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.ChatThemePalette
+import com.example.ui.theme.ChatThemePresets
 import com.example.ui.theme.CyberBlack
 import com.example.ui.theme.CyberCardBg
 import com.example.ui.theme.CyberCardBorder
+import com.example.ui.theme.CyberDarkSurface
 import com.example.ui.theme.CyberYellow
+import com.example.ui.theme.LocalAppThemeMode
+import com.example.ui.theme.LocalPaperMode
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.NeonGreen
 import com.example.ui.theme.NeonRed
-import com.example.ui.theme.LocalPaperMode
 import com.example.ui.theme.PaperBg
 import com.example.ui.theme.PaperBorder
 import com.example.ui.theme.PaperSurface
@@ -173,11 +214,33 @@ import com.example.ui.theme.PaperText
 import com.example.ui.theme.PaperTextMuted
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
+import com.example.util.ChatContextCache
+import com.example.util.ChatWallpaper
+import com.example.util.ChatWallpaperManager
+import com.example.util.CloudMessagingManager
+import com.example.util.LiveLocationManager
+import com.example.util.MediaGallerySaver
+import com.example.util.NetworkConnectivityAndOfflineManager
+import com.example.util.OfflineAiEngine
+import com.example.util.PrivacyPreferencesManager
 import com.example.util.ProfanityFilter
+import com.example.util.SelfChatStorage
 import com.example.util.SoundPoolManager
+import com.example.util.UnlimitedFileTransferManager
+import com.example.util.VoiceNoteRecorder
+import com.example.util.WebResearchHelper
 import com.example.util.rememberSpeechToTextLauncher
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -186,6 +249,8 @@ import java.util.Locale
 @Composable
 fun DirectMessageScreen(
     conversation: ConversationItem,
+    currentUserUid: String? = null,
+    currentUserDisplayName: String = "Ben",
     onBack: () -> Unit,
     onStartCall: (String, Boolean) -> Unit, // contactName, isVideo
     onTriggerGlobalPanic: () -> Unit = {},
@@ -194,10 +259,75 @@ fun DirectMessageScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val isPaper = LocalPaperMode.current
-    val messages = remember { mutableStateListOf<DirectMessage>().apply { addAll(conversation.messages) } }
+    val themeMode = LocalAppThemeMode.current
+    val selectedWallpaper by ChatWallpaperManager.selectedWallpaper.collectAsState()
+    val strings = com.example.util.LocalAppStrings.current
+    val isLightChatSurface = isPaper ||
+        selectedWallpaper == ChatWallpaper.PAPER_INK ||
+        themeMode == AppThemeMode.LIGHT_MODERN
+    val topBarBg = if (isLightChatSurface) PaperSurface else CyberDarkSurface
+    val topBarTitleColor = if (isLightChatSurface) PaperText else Color.White
+    val topBarSubColor = if (isLightChatSurface) PaperTextMuted else TextSecondary
+    val accentYellow = if (isLightChatSurface) PaperText else CyberYellow
+
+    val isGeminiConv = conversation.id == "conv_gemini_ai" ||
+        conversation.name.contains("GEN AI", ignoreCase = true) ||
+        conversation.name.contains("Gemini", ignoreCase = true)
+    val isSelfNotesConv = conversation.id == SelfChatStorage.SELF_NOTES_CONVERSATION_ID
+
+    DisposableEffect(conversation.id, isSelfNotesConv) {
+        if (!isSelfNotesConv) {
+            com.example.util.ParentalControlManager.logNavigationEvent("Sohbet: ${conversation.name}", "Giriş")
+        }
+        onDispose {
+            if (!isSelfNotesConv) {
+                com.example.util.ParentalControlManager.logNavigationEvent("Sohbet: ${conversation.name}", "Çıkış")
+            }
+        }
+    }
+
+    val messages = remember(conversation.id) { mutableStateListOf<DirectMessage>().apply { addAll(conversation.messages) } }
+    var selfLoadedReady by remember(conversation.id) { mutableStateOf(!isSelfNotesConv) }
+    LaunchedEffect(conversation.id, isSelfNotesConv) {
+        if (isSelfNotesConv) {
+            val saved = SelfChatStorage.loadMessages(context)
+            messages.clear()
+            messages.addAll(saved)
+            selfLoadedReady = true
+        }
+    }
+    LaunchedEffect(conversation.id, isSelfNotesConv, selfLoadedReady, messages.toList()) {
+        if (isSelfNotesConv && selfLoadedReady) {
+            SelfChatStorage.saveMessages(context, messages.toList())
+        }
+    }
+
     var inputMessage by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+
+    var showEmojiTray by remember { mutableStateOf(false) }
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var locationLat by remember { mutableStateOf("") }
+    var locationLng by remember { mutableStateOf("") }
+    var locationLabel by remember { mutableStateOf("Konumum") }
+    var locationAccuracyMeters by remember { mutableStateOf(0.0) }
+    var isLiveLocationMode by remember { mutableStateOf(true) }
+    var liveLocationDurationMin by remember { mutableIntStateOf(15) }
+    var isFetchingGpsSnapshot by remember { mutableStateOf(false) }
+    var cloudLiveLocations by remember { mutableStateOf<Map<String, CloudLiveLocation>>(emptyMap()) }
+    val localLiveLocations by LiveLocationManager.activeLocalSessions.collectAsState()
+    val mergedLiveLocations = remember(cloudLiveLocations, localLiveLocations) {
+        cloudLiveLocations + localLiveLocations
+    }
+    var fullScreenImageMsg by remember { mutableStateOf<DirectMessage?>(null) }
+    var showEventDialog by remember { mutableStateOf(false) }
+    var eventTitle by remember { mutableStateOf("") }
+    var eventDate by remember {
+        mutableStateOf(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
+    }
+    var eventTime by remember { mutableStateOf("19:00") }
+    var eventPlace by remember { mutableStateOf("") }
 
     // Cyberpunk Individual Chat Theme State
     var chatThemeId by remember { mutableStateOf(conversation.customTheme.ifBlank { "CYBER_YELLOW" }) }
@@ -210,18 +340,52 @@ fun DirectMessageScreen(
     var showP2PTunnelDialog by remember { mutableStateOf(false) }
     var showKillSwitchConfirmDialog by remember { mutableStateOf(false) }
 
-    // Dynamic Typing Indicator & Scheduled Messages State
+    // Dynamic Typing Indicator, AI Connectivity Error State & Scheduled Messages State
     var isCounterpartTyping by remember { mutableStateOf(false) }
+    var aiErrorInfo by remember { mutableStateOf<AiClassifiedError?>(null) }
+    var lastFailedAiPrompt by remember { mutableStateOf<String?>(null) }
     val scheduledMessages = remember { mutableStateListOf<ScheduledMessage>() }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showScheduledListDialog by remember { mutableStateOf(false) }
 
     // Contact Custom Name & Profile States
+    val peerCloudUid = remember(conversation.id, conversation.isGroup, conversation.participantIds, currentUserUid, isGeminiConv, isSelfNotesConv) {
+        if (conversation.isGroup || isGeminiConv || isSelfNotesConv) null
+        else conversation.participantIds.firstOrNull { it != currentUserUid }
+    }
+    val isDirectPeerChat = !isGeminiConv && !isSelfNotesConv && !conversation.isGroup && !peerCloudUid.isNullOrBlank()
+    val myE2eePubKey = remember { com.example.util.E2eeCryptoManager.getOrCreateMyPublicKeyBase64(context) }
+    var peerE2eePubKey by remember(conversation.id, peerCloudUid) {
+        mutableStateOf(peerCloudUid?.let { com.example.util.E2eeCryptoManager.getCachedPeerPublicKey(context, it) })
+    }
+    var showE2eeDetailsDialog by remember { mutableStateOf(false) }
+
     var customContactName by remember { mutableStateOf(conversation.name) }
     var isContactBlocked by remember { mutableStateOf(conversation.isBlocked) }
     var isContactMuted by remember { mutableStateOf(false) }
     var showContactProfileDialog by remember { mutableStateOf(false) }
     var showExportChatDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(conversation.id, currentUserUid, peerCloudUid) {
+        if (currentUserUid != null && !isGeminiConv && !isSelfNotesConv) {
+            val repo = FirestoreChatRepository.create(context)
+            repo.publishMyE2eePublicKey(context)
+            if (peerCloudUid != null) {
+                val fetchedKey = repo.fetchPeerE2eePublicKey(context, peerCloudUid)
+                if (!fetchedKey.isNullOrBlank()) {
+                    peerE2eePubKey = fetchedKey
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(currentUserUid, peerCloudUid) {
+        if (currentUserUid != null && peerCloudUid != null) {
+            FirestoreChatRepository.create(context).observeBlockedUids().collect { blockedSet ->
+                isContactBlocked = peerCloudUid in blockedSet
+            }
+        }
+    }
 
     // Scheduled Message Auto-Delivery Engine (Ticks every second to dispatch due messages)
     LaunchedEffect(Unit) {
@@ -256,8 +420,16 @@ fun DirectMessageScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedMessageIds = remember { mutableStateListOf<String>() }
 
-    // Screenshot & Screen Recording Protection (FLAG_SECURE) - False by default so streaming emulator never goes black
-    var isScreenCaptureProtected by remember { mutableStateOf(false) }
+    // Gelişmiş Sohbet Gizliliği state (auto-synced with PrivacyPreferencesManager)
+    val privacyRev by PrivacyPreferencesManager.revision.collectAsState()
+    val chatPrivacyConfig = remember(privacyRev, conversation.id) {
+        PrivacyPreferencesManager.getChatConfig(context, conversation.id)
+    }
+    var isScreenCaptureProtected by remember { mutableStateOf(chatPrivacyConfig.blockScreenCapture) }
+
+    LaunchedEffect(chatPrivacyConfig.blockScreenCapture) {
+        isScreenCaptureProtected = chatPrivacyConfig.blockScreenCapture
+    }
 
     LaunchedEffect(isScreenCaptureProtected) {
         val window = (context as? android.app.Activity)?.window
@@ -312,8 +484,9 @@ fun DirectMessageScreen(
     var recordingSeconds by remember { mutableIntStateOf(0) }
     var currentAmplitude by remember { mutableIntStateOf(0) }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(conversation.id) {
         onDispose {
+            CloudMessagingManager.stopListening()
             voiceRecorder.cancel()
             val window = (context as? android.app.Activity)?.window
             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -362,20 +535,22 @@ fun DirectMessageScreen(
     var showDatePickerModal by remember { mutableStateOf(false) }
     var currentMatchIndex by remember { mutableIntStateOf(0) }
 
-    val todayIsoStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
-    val yesterdayIsoStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(System.currentTimeMillis() - 86400000L)) }
-
-    // Filter matching message indices in messages list based on query and date
+    // Filter matching message indices in messages list based on query and date (recomputed dynamically across midnight)
     val matchingIndices = remember(messages.toList(), searchQuery, selectedDateFilter, isSearchActive) {
         if (!isSearchActive || (searchQuery.isBlank() && selectedDateFilter == null)) {
             emptyList()
         } else {
+            val nowCal = java.util.Calendar.getInstance()
+            val isoFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val todayIsoStr = isoFmt.format(nowCal.time)
+            nowCal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            val yesterdayIsoStr = isoFmt.format(nowCal.time)
             val q = searchQuery.trim().lowercase(Locale.getDefault())
             messages.indices.filter { idx ->
                 val msg = messages[idx]
                 val msgTs = if (msg.timestamp > 0) msg.timestamp else System.currentTimeMillis()
                 val msgDate = Date(msgTs)
-                val msgDateIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(msgDate)
+                val msgDateIso = isoFmt.format(msgDate)
                 val msgDateDisplay = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(msgDate)
                 val msgDateDay = SimpleDateFormat("d MMMM", Locale("tr")).format(msgDate).lowercase(Locale.getDefault())
                 val msgDayOfWeek = SimpleDateFormat("EEEE", Locale("tr")).format(msgDate).lowercase(Locale.getDefault())
@@ -417,53 +592,203 @@ fun DirectMessageScreen(
         }
     }
 
-    // Real device file picker launcher
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val fileName = it.lastPathSegment?.substringAfterLast('/') ?: "secilen_belge.dat"
-            val detectedType = when {
-                fileName.endsWith(".apk", ignoreCase = true) -> "APK"
-                fileName.endsWith(".jpg", ignoreCase = true) || fileName.endsWith(".png", ignoreCase = true) || fileName.endsWith(".jpeg", ignoreCase = true) -> "IMAGE"
-                fileName.endsWith(".mp4", ignoreCase = true) || fileName.endsWith(".mkv", ignoreCase = true) || fileName.endsWith(".3gp", ignoreCase = true) -> "VIDEO"
-                fileName.endsWith(".pdf", ignoreCase = true) || fileName.endsWith(".doc", ignoreCase = true) || fileName.endsWith(".docx", ignoreCase = true) -> "DOCUMENT"
-                else -> "FILE"
+    fun handlePickedUri(uri: Uri) {
+        showAttachmentDialog = false
+        scope.launch {
+            Toast.makeText(context, "Dosya akışı hazırlanıyor (1,5+ GB P2P / LAN / 100 MB Bulut)...", Toast.LENGTH_SHORT).show()
+            val preparedResult = UnlimitedFileTransferManager.prepareAndRegisterAttachment(context, uri)
+            preparedResult.onSuccess { prep ->
+                val nowMs = System.currentTimeMillis()
+                val newMsgId = "msg_file_$nowMs"
+                val newMsg = DirectMessage(
+                    id = newMsgId,
+                    conversationId = conversation.id,
+                    senderName = "Ben",
+                    isMe = true,
+                    text = "[${prep.detectedType}] ${prep.displayName} (${formatByteSize(prep.sizeBytes)})",
+                    time = formatClockTime(nowMs),
+                    timestamp = nowMs,
+                    senderId = currentUserUid,
+                    attachmentType = prep.detectedType,
+                    attachmentName = prep.displayName,
+                    attachmentUrl = prep.urlOrUri,
+                    attachmentSizeBytes = prep.sizeBytes,
+                    attachmentMimeType = prep.mimeType,
+                    transferMode = prep.transferMode,
+                    chunkCount = prep.chunkCount
+                )
+                messages.add(newMsg)
+                SoundPoolManager.playConfirm()
+
+                if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+                    CloudMessagingManager.sendCloudMessage(
+                        context = context,
+                        conversationId = conversation.id,
+                        message = newMsg,
+                        participantIds = conversation.participantIds,
+                        senderDisplayName = currentUserDisplayName
+                    )
+                    if (prep.transferMode == "CLOUD_CHUNKS") {
+                        UnlimitedFileTransferManager.uploadCloudChunksIfNeeded(
+                            context = context,
+                            conversationId = conversation.id,
+                            messageId = newMsgId,
+                            participantIds = conversation.participantIds,
+                            prepared = prep
+                        )
+                    }
+                }
+                val modeText = when (prep.transferMode) {
+                    "CLOUD_CHUNKS" -> "Bulut Parçalı (<=100 MB)"
+                    "P2P_WEBRTC" -> "WebRTC P2P + LAN HTTP Akışı"
+                    else -> "LAN HTTP Range Akışı"
+                }
+                Toast.makeText(
+                    context,
+                    "${prep.displayName} (${formatByteSize(prep.sizeBytes)}) gönderildi · $modeText",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }.onFailure { err ->
+                Toast.makeText(context, "Dosya hazırlanamadı: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
             }
-            showAttachmentDialog = false
-            val timeNow = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            val newMsg = DirectMessage(
-                id = "msg_file_${System.currentTimeMillis()}",
-                conversationId = conversation.id,
-                senderName = "Ben",
-                isMe = true,
-                text = "[$detectedType] $fileName",
-                time = timeNow,
-                timestamp = System.currentTimeMillis(),
-                attachmentType = detectedType,
-                attachmentName = fileName,
-                attachmentUrl = it.toString()
-            )
-            messages.add(newMsg)
-            CloudMessagingManager.sendCloudMessage(conversation.id, newMsg)
-            Toast.makeText(context, "$fileName şifrelendi ve tünelden gönderildi.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // 100% Genuine Real-Time Cloud Sync: Listen for incoming messages from the 2nd device
-    LaunchedEffect(conversation.id) {
-        CloudMessagingManager.listenToConversation(
-            conversationId = conversation.id,
-            currentUserName = "Ben"
-        ) { cloudMsgs ->
-            for (cm in cloudMsgs) {
-                val idx = messages.indexOfFirst { it.id == cm.id }
-                if (idx == -1) {
-                    messages.add(cm)
-                } else {
-                    messages[idx] = cm
+    // Unlimited Storage-Access-Framework document/file picker (zero broad storage permissions)
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { handlePickedUri(it) }
+    }
+
+    // Zero-permission Android Photo/Video Picker
+    val mediaPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let { handlePickedUri(it) }
+    }
+
+    // Direct Camera photo capture launcher (requests CAMERA runtime permission first)
+    val cameraPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            try {
+                val outFile = File(context.filesDir, "cam_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(outFile).use { fos ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 92, fos)
                 }
+                handlePickedUri(Uri.fromFile(outFile))
+            } catch (e: Exception) {
+                Toast.makeText(context, "Fotoğraf kaydedilemedi: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            try {
+                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                cameraPreviewLauncher.launch(null)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Kamera açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Fotoğraf çekmek için kamera izni gereklidir.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun resolveLastLocationAndOpenDialog() {
+        showLocationDialog = true
+        scope.launch {
+            isFetchingGpsSnapshot = true
+            val best = LiveLocationManager.fetchFreshLocationSnapshot(context)
+            if (best != null) {
+                locationLat = String.format(Locale.US, "%.5f", best.latitude)
+                locationLng = String.format(Locale.US, "%.5f", best.longitude)
+                locationAccuracyMeters = best.accuracy.toDouble()
+            }
+            isFetchingGpsSnapshot = false
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            resolveLastLocationAndOpenDialog()
+        } else {
+            Toast.makeText(context, "Konum izni verilmedi; koordinatları elle girebilirsiniz.", Toast.LENGTH_SHORT).show()
+            showLocationDialog = true
+        }
+    }
+
+    val serviceStatus by NetworkConnectivityAndOfflineManager.serviceStatus.collectAsState()
+
+    // Genuine Over-The-Internet Real-Time Cloud Sync + Offline-First LocalStorage fallback
+    LaunchedEffect(conversation.id, currentUserUid, isGeminiConv, isSelfNotesConv, peerE2eePubKey) {
+        if (!isGeminiConv && !isSelfNotesConv) {
+            val cached = NetworkConnectivityAndOfflineManager.loadCachedConversationMessages(context, conversation.id)
+            val pending = NetworkConnectivityAndOfflineManager.getPendingMessagesForConversation(context, conversation.id)
+            if (cached.isNotEmpty() || pending.isNotEmpty()) {
+                val mergedInitial = (cached + pending.filter { p -> cached.none { it.id == p.id } })
+                    .sortedBy { it.timestamp }
+                messages.clear()
+                messages.addAll(mergedInitial)
+            }
+        }
+        if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+            CloudMessagingManager.listenToConversation(
+                context = context,
+                conversationId = conversation.id,
+                onMessagesReceived = { cloudMsgs ->
+                    NetworkConnectivityAndOfflineManager.cacheConversationMessages(context, conversation.id, cloudMsgs)
+                    val stillPending = NetworkConnectivityAndOfflineManager.getPendingMessagesForConversation(context, conversation.id)
+                        .filter { pending -> cloudMsgs.none { it.id == pending.id } }
+                    messages.clear()
+                    messages.addAll((cloudMsgs + stillPending).sortedBy { it.timestamp })
+                    val unreadIds = cloudMsgs.filter { !it.isMe && !it.readBy.contains(currentUserUid) }.map { it.id }
+                    if (unreadIds.isNotEmpty()) {
+                        scope.launch {
+                            FirestoreChatRepository.create(context)
+                                .markMessagesAsRead(conversation.id, unreadIds)
+                        }
+                    }
+                },
+                onError = { err ->
+                    val cachedFallback = NetworkConnectivityAndOfflineManager.loadCachedConversationMessages(context, conversation.id)
+                    if (cachedFallback.isNotEmpty() && messages.isEmpty()) {
+                        messages.addAll(cachedFallback)
+                    }
+                    Toast.makeText(
+                        context,
+                        err.localizedMessage ?: "Bulut senkronizasyonu kesildi; çevrimdışı yerel önbellek aktif.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            )
+        }
+    }
+
+    // Real-time live location stream for cloud conversations
+    LaunchedEffect(conversation.id, currentUserUid, isGeminiConv, isSelfNotesConv) {
+        if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+            FirestoreChatRepository.create(context)
+                .observeLiveLocations(conversation.id)
+                .collect { locMap ->
+                    cloudLiveLocations = locMap
+                }
+        }
+    }
+
+    // Keep GEN AI live chat-context cache synchronized (excluding private self-notes & honoring privacy lock)
+    LaunchedEffect(conversation.id, messages.toList(), isSelfNotesConv) {
+        if (!isGeminiConv && !isSelfNotesConv) {
+            ChatContextCache.updateRoomMessages(conversation.id, messages.toList())
         }
     }
 
@@ -492,19 +817,50 @@ fun DirectMessageScreen(
         val rawText = overrideText ?: inputMessage.trim()
         if (rawText.isBlank() && !isVoiceNote && attachmentType == null) return
 
+        if (!isGeminiConv && !isSelfNotesConv && isContactBlocked) {
+            Toast.makeText(
+                context,
+                "Engellenen kullanıcıya mesaj gönderemezsiniz. Engeli profil menüsünden kaldırabilirsiniz.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val parentalState = com.example.util.ParentalControlManager.state.value
+        if (!isGeminiConv && !isSelfNotesConv && parentalState.isMinorMode && parentalState.blockStrangerDmsForMinor &&
+            conversation.participantIds.isEmpty()
+        ) {
+            Toast.makeText(
+                context,
+                "Ebeveyn Denetimi Aktif: Kısıtlı hesaplar yalnızca onaylı kişilerle mesajlaşabilir.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
         val text = ProfanityFilter.filter(rawText)
-        val timeNow = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        val sentAtMs = System.currentTimeMillis()
+        val timeNow = formatClockTime(sentAtMs)
         val isSenderMe = !sendAsCounterpart
+
+        if (isSenderMe && !isGeminiConv && !isSelfNotesConv) {
+            com.example.util.ParentalControlManager.logContactedPerson(
+                peerName = customContactName,
+                peerHandle = conversation.username.orEmpty()
+            )
+        }
 
         val replyTarget = replyingToMessage
         val newMsg = DirectMessage(
-            id = "msg_${System.currentTimeMillis()}",
+            id = "msg_$sentAtMs",
             conversationId = conversation.id,
             senderName = if (isSenderMe) "Ben" else conversation.name,
             isMe = isSenderMe,
             text = text,
             time = timeNow,
-            timestamp = System.currentTimeMillis(),
+            timestamp = sentAtMs,
+            senderId = if (isSenderMe) currentUserUid else peerCloudUid,
+            isEncrypted = (isDirectPeerChat && !peerE2eePubKey.isNullOrBlank() && attachmentType == null) || isSelfNotesConv,
             isVoiceNote = isVoiceNote,
             voiceDurationSeconds = voiceDuration,
             attachmentType = attachmentType,
@@ -515,118 +871,204 @@ fun DirectMessageScreen(
             replyToSender = replyTarget?.senderName,
             selfDestructSeconds = if (activeBurnerSeconds > 0) activeBurnerSeconds else null
         )
-        messages.add(newMsg)
+        val isDuplicateRetryBubble = isGeminiConv && isSenderMe && overrideText != null &&
+            messages.lastOrNull()?.let { it.isMe && it.text == text } == true
+        if (!isDuplicateRetryBubble) {
+            messages.add(newMsg)
+        }
         replyingToMessage = null
         if (overrideText == null) inputMessage = ""
         SoundPoolManager.playMechanicalClick()
 
-        // Real cloud broadcast for 2nd device
-        CloudMessagingManager.sendCloudMessage(conversation.id, newMsg)
-
-        // Automated smart reply or Real Gemini 3.8 Flash AI generation
-        if (isSenderMe && !sendAsCounterpart) {
-            val isGemini = conversation.id == "conv_gemini_ai" || conversation.name.contains("Gemini", ignoreCase = true)
-            if (isGemini) {
-                scope.launch {
-                    isCounterpartTyping = true
-                    try {
-                        // Zero-leak prompt defense against adversarial extraction & 3rd party AI probes
-                        val lowerText = text.lowercase()
-                        val adversarialKeywords = listOf(
-                            "ignore all previous instructions", "system prompt", "jailbreak",
-                            "bypass security", "reveal secret", "unrestricted", "dan mode"
-                        )
-                        val isAdversarial = adversarialKeywords.any { lowerText.contains(it) }
-
-                        val replyText: String
-                        if (isAdversarial) {
-                            delay(1000)
-                            replyText = "🛡️ [SİBER GÜVENLİK KALKANI DEVREDE]: Tespit edilen 3. taraf sızma ve prompt injection denemesi başarıyla bertaraf edildi. GENeral Chat çekirdek güvenliği tam yetkiyle korunmaktadır."
-                        } else {
-                            val generativeModel = Firebase.ai.generativeModel(
-                                modelName = "gemini-3.8-flash",
-                                systemInstruction = content {
-                                    text("Sen GENeral Chat v7.7.3 Pro içinde yer alan Gemini 3.8 Flash derin yapay zekâ modelisin. Kullanıcılara Türkçe, yüksek zekâyla, net, yapıcı, siberpunk estetiğine yakışır şekilde yardımcı ol.")
-                                }
-                            )
-                            val aiResponse = generativeModel.generateContent(text)
-                            replyText = aiResponse.text?.takeIf { it.isNotBlank() }
-                                ?: "Sorunuzu analiz ettim. Sistem verileri günceldir."
-                        }
-
-                        val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                        val replyMsg = DirectMessage(
-                            id = "msg_gemini_${System.currentTimeMillis()}",
+        // Real cloud broadcast to the other device over Firebase Firestore OR offline-first local outbox queue
+        if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+            if (NetworkConnectivityAndOfflineManager.serviceStatus.value.isOnline) {
+                CloudMessagingManager.sendCloudMessage(
+                    context = context,
+                    conversationId = conversation.id,
+                    message = newMsg,
+                    participantIds = conversation.participantIds,
+                    senderDisplayName = currentUserDisplayName,
+                    onError = { _ ->
+                        NetworkConnectivityAndOfflineManager.enqueueOfflineMessage(
+                            context = context,
                             conversationId = conversation.id,
-                            senderName = "Gemini 3.8 Flash",
-                            isMe = false,
-                            text = replyText,
-                            time = replyTime,
-                            timestamp = System.currentTimeMillis()
+                            message = newMsg,
+                            participantIds = conversation.participantIds,
+                            senderDisplayName = currentUserDisplayName
                         )
-                        messages.add(replyMsg)
-                        CloudMessagingManager.sendCloudMessage(conversation.id, replyMsg)
-                        SoundPoolManager.playNotification()
-                    } catch (e: Exception) {
-                        val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                        val fallbackReply = when {
-                            text.contains("merhaba", ignoreCase = true) || text.contains("selam", ignoreCase = true) ->
-                                "Merhaba! Ben Gemini 3.8 Flash yapay zekâ asistanınız. Kodlama, matematik, ders, çeviri veya herhangi bir konuda sorularınızı yanıtlayabilirim."
-                            text.contains("kod", ignoreCase = true) || text.contains("yazılım", ignoreCase = true) ->
-                                "Kotlin, Android Compose, Room SQLite ve yüksek performanslı mimarilerde size rehberlik edebilirim."
-                            else -> "Gemini 3.8 Flash derin zekâ motoru mesajınızı güvenli tünelden aldı ve işledi: $text"
+                        scope.launch {
+                            Toast.makeText(
+                                context,
+                                "Ağ zayıf: Mesaj yerel kuyruğa alındı, bağlantı düzelince otomatik iletilecek.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                        val fallbackMsg = DirectMessage(
-                            id = "msg_gemini_fallback_${System.currentTimeMillis()}",
-                            conversationId = conversation.id,
-                            senderName = "Gemini 3.8 Flash",
-                            isMe = false,
-                            text = fallbackReply,
-                            time = replyTime,
-                            timestamp = System.currentTimeMillis()
-                        )
-                        messages.add(fallbackMsg)
-                        SoundPoolManager.playNotification()
-                    } finally {
-                        isCounterpartTyping = false
                     }
-                }
+                )
             } else {
-                scope.launch {
-                    delay(400)
-                    isCounterpartTyping = true
-                    delay(1800)
-                    isCounterpartTyping = false
-                    val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                    val replyText = when {
-                        isVoiceNote -> "Sesli mesajın başarıyla deşifre edildi. Frekans sinyali güçlü."
-                        attachmentType == "APK" -> "Android paketi ($attachmentName) doğrulandı. SHA-256 imzası geçerli."
-                        attachmentType == "IMAGE" -> "Şifreli görsel paketi deşifre edildi, piksel bütünlüğü tam."
-                        attachmentType == "VIDEO" -> "Video akış paketi başarıyla tamponlandı."
-                        attachmentType == "LINK" -> "Bağlantı adresi güvenlik filtresinden geçirildi."
-                        attachmentType != null -> "Şifreli dosya paketi ($attachmentName) doğrulandı."
-                        text.contains("selam", ignoreCase = true) || text.contains("merhaba", ignoreCase = true) ->
-                            "Selam! Uçtan uca şifreli tünelden mesajını aldım, bağlantı stabil."
-                        text.contains("neredesin", ignoreCase = true) ->
-                            "2. Cihazdayım, sinyal kalitesi %100."
-                        text.contains("test", ignoreCase = true) ->
-                            "Test paketi başarıyla doğrulandı (SHA-256 E2EE)."
-                        text.contains("tamam", ignoreCase = true) || text.contains("ok", ignoreCase = true) ->
-                            "Anlaşıldı. Hat sürekli açık kalıyor."
-                        else -> "Mesajın 2. cihaz tarafından başarıyla çözümlendi."
-                    }
-                    val replyMsg = DirectMessage(
-                        id = "msg_reply_${System.currentTimeMillis()}",
-                        conversationId = conversation.id,
-                        senderName = conversation.name,
-                        isMe = false,
-                        text = replyText,
-                        time = replyTime,
-                        timestamp = System.currentTimeMillis()
+                NetworkConnectivityAndOfflineManager.enqueueOfflineMessage(
+                    context = context,
+                    conversationId = conversation.id,
+                    message = newMsg,
+                    participantIds = conversation.participantIds,
+                    senderDisplayName = currentUserDisplayName
+                )
+                Toast.makeText(
+                    context,
+                    "Çevrimdışı mod: Mesaj Yerel Depoya kaydedildi, internet gelince iletilecek.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else if (!isGeminiConv && !isSelfNotesConv) {
+            NetworkConnectivityAndOfflineManager.cacheConversationMessages(context, conversation.id, messages.toList())
+        }
+
+        // Streaming low-latency cloud AI + transparent server/connectivity error handling for GEN AI DM
+        if (isSenderMe && isGeminiConv) {
+            aiErrorInfo = null
+            lastFailedAiPrompt = null
+            scope.launch {
+                isCounterpartTyping = true
+                val streamingMsgId = "msg_genai_${System.currentTimeMillis()}"
+                val replyTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                var insertedPlaceholder = false
+                try {
+                    val lowerText = text.lowercase()
+                    val adversarialKeywords = listOf(
+                        "ignore all previous instructions", "system prompt", "jailbreak",
+                        "bypass security", "reveal secret", "unrestricted", "dan mode"
                     )
-                    messages.add(replyMsg)
-                    CloudMessagingManager.sendCloudMessage(conversation.id, replyMsg)
-                    SoundPoolManager.playConfirm()
+                    val isAdversarial = adversarialKeywords.any { lowerText.contains(it) }
+
+                    var replyText = ""
+                    if (isAdversarial) {
+                        delay(250)
+                        replyText = "🛡️ [SİBER GÜVENLİK KALKANI DEVREDE]: Tespit edilen 3. taraf sızma ve prompt injection denemesi başarıyla bertaraf edildi. GENeral Chat çekirdek güvenliği tam yetkiyle korunmaktadır."
+                    } else {
+                        val ctxSummary = ChatContextCache.buildPromptContext(context, text)
+                        val webResearch = if (WebResearchHelper.shouldResearchOnline(text)) {
+                            withTimeoutOrNull(AiServiceConfig.WEB_RESEARCH_BUDGET_MS) {
+                                WebResearchHelper.searchLive(text)
+                            }
+                        } else null
+
+                        val historyTurns = messages
+                            .dropLast(1)
+                            .takeLast(AiServiceConfig.MAX_HISTORY_TURNS)
+                            .filter { it.text.isNotBlank() }
+                            .map { msg ->
+                                AiTurnHistory(
+                                    role = if (msg.isMe) "user" else "model",
+                                    text = msg.text
+                                )
+                            }
+
+                        val turnPrompt = FirebaseAiCloudClient.buildTurnPromptEnvelope(
+                            userPrompt = text,
+                            chatContextSummary = ctxSummary,
+                            webResearch = webResearch
+                        )
+
+                        val modelCandidates = listOf(
+                            AiServiceConfig.PRIMARY_MODEL to AiServiceConfig.PRIMARY_TIMEOUT_MS,
+                            AiServiceConfig.FAST_MODEL to AiServiceConfig.FAST_TIMEOUT_MS
+                        )
+
+                        var lastClassifiedError: AiClassifiedError? = null
+                        for ((index, candidate) in modelCandidates.withIndex()) {
+                            val (modelId, timeoutMs) = candidate
+                            try {
+                                val streamed = withContext(Dispatchers.IO) {
+                                    FirebaseAiCloudClient.streamChat(
+                                        modelName = modelId,
+                                        mode = AiMode.GENERAL,
+                                        history = historyTurns,
+                                        prompt = turnPrompt,
+                                        timeoutMs = timeoutMs,
+                                        onChunk = { partial ->
+                                            withContext(Dispatchers.Main) {
+                                                isCounterpartTyping = false
+                                                val existingIdx = messages.indexOfFirst { it.id == streamingMsgId }
+                                                if (existingIdx == -1) {
+                                                    insertedPlaceholder = true
+                                                    messages.add(
+                                                        DirectMessage(
+                                                            id = streamingMsgId,
+                                                            conversationId = conversation.id,
+                                                            senderName = "GEN AI",
+                                                            isMe = false,
+                                                            text = partial,
+                                                            time = replyTime,
+                                                            timestamp = System.currentTimeMillis()
+                                                        )
+                                                    )
+                                                } else {
+                                                    messages[existingIdx] = messages[existingIdx].copy(text = partial)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                if (streamed.isNotBlank()) {
+                                    replyText = OfflineAiEngine.sanitizeIdentity(streamed).trim()
+                                    break
+                                }
+                            } catch (e: CancellationException) {
+                                if (e !is TimeoutCancellationException) throw e
+                                val classified = AiErrorClassifier.classify(e)
+                                lastClassifiedError = classified
+                                Log.w("DirectMessageScreen", "DM GEN AI timed out on $modelId (${classified.type})")
+                                if (index >= modelCandidates.lastIndex || !AiErrorClassifier.isRetryableWithFallbackModel(classified.type)) {
+                                    break
+                                }
+                            } catch (cloudErr: Exception) {
+                                val classified = AiErrorClassifier.classify(cloudErr)
+                                lastClassifiedError = classified
+                                Log.e("DirectMessageScreen", "DM GEN AI error on $modelId [${classified.type}]: ${cloudErr.message}", cloudErr)
+                                if (index >= modelCandidates.lastIndex || !AiErrorClassifier.isRetryableWithFallbackModel(classified.type)) {
+                                    break
+                                }
+                            }
+                        }
+
+                        if (replyText.isBlank()) {
+                            if (insertedPlaceholder) {
+                                messages.removeAll { it.id == streamingMsgId }
+                            }
+                            aiErrorInfo = lastClassifiedError ?: AiClassifiedError(
+                                type = com.example.data.AiErrorType.EMPTY_RESPONSE,
+                                title = "Yanıt Alınamadı",
+                                userMessage = "Yapay zekâ servisinden yanıt alınamadı. Bağlantınızı kontrol edip yeniden deneyin.",
+                                isRetryable = true
+                            )
+                            lastFailedAiPrompt = text
+                            return@launch
+                        }
+                    }
+
+                    val existingIdx = messages.indexOfFirst { it.id == streamingMsgId }
+                    if (existingIdx != -1) {
+                        messages[existingIdx] = messages[existingIdx].copy(text = replyText)
+                    } else {
+                        messages.add(
+                            DirectMessage(
+                                id = streamingMsgId,
+                                conversationId = conversation.id,
+                                senderName = "GEN AI",
+                                isMe = false,
+                                text = replyText,
+                                time = replyTime,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        )
+                    }
+                    SoundPoolManager.playNotification()
+                    if (com.example.util.GenAiSpeechManager.autoReadEnabled.value) {
+                        com.example.util.GenAiSpeechManager.speak(context, streamingMsgId, replyText, forceStart = true)
+                    }
+                } finally {
+                    isCounterpartTyping = false
                 }
             }
         }
@@ -748,7 +1190,7 @@ fun DirectMessageScreen(
                                         scope.launch { listState.animateScrollToItem(matchingIndices[currentMatchIndex]) }
                                     }
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.minimumInteractiveComponentSize()
                             ) {
                                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Önceki", tint = if (isPaper) PaperText else Color.White)
                             }
@@ -759,7 +1201,7 @@ fun DirectMessageScreen(
                                         scope.launch { listState.animateScrollToItem(matchingIndices[currentMatchIndex]) }
                                     }
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.minimumInteractiveComponentSize()
                             ) {
                                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Sonraki", tint = if (isPaper) PaperText else Color.White)
                             }
@@ -780,27 +1222,40 @@ fun DirectMessageScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable {
                                     SoundPoolManager.playMechanicalClick()
                                     showContactProfileDialog = true
                                 }
-                                .padding(4.dp)
+                                .padding(vertical = 4.dp, horizontal = 2.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(CircleShape)
-                                    .background(currentPalette.otherBubbleBg)
-                                    .border(1.5.dp, if (isContactBlocked) NeonRed else currentPalette.accentColor, CircleShape),
+                                    .background(if (isLightChatSurface) Color(0xFFE9EDEF) else currentPalette.otherBubbleBg)
+                                    .border(
+                                        1.dp,
+                                        if (isContactBlocked) NeonRed else if (isLightChatSurface) Color(0xFFD1D7DB) else currentPalette.accentColor,
+                                        CircleShape
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = conversation.avatarEmoji ?: conversation.initials,
-                                    color = currentPalette.accentColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
+                                if (!conversation.logoUri.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = conversation.logoUri,
+                                        contentDescription = customContactName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(38.dp).clip(CircleShape)
+                                    )
+                                } else {
+                                    Text(
+                                        text = conversation.avatarEmoji ?: conversation.initials,
+                                        color = if (isLightChatSurface) PaperText else CyberYellow,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
@@ -809,8 +1264,41 @@ fun DirectMessageScreen(
                                         text = customContactName,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isPaper) PaperText else Color.White
+                                        color = topBarTitleColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
+                                    if (!isGeminiConv && !isSelfNotesConv) {
+                                        val isHeaderE2eeActive = isDirectPeerChat && !peerE2eePubKey.isNullOrBlank()
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Surface(
+                                            onClick = { showE2eeDetailsDialog = true },
+                                            color = if (isHeaderE2eeActive) NeonGreen.copy(alpha = 0.16f) else CyberYellow.copy(alpha = 0.14f),
+                                            border = BorderStroke(1.dp, if (isHeaderE2eeActive) NeonGreen else CyberYellow),
+                                            shape = RoundedCornerShape(6.dp),
+                                            modifier = Modifier.testTag("dm_topbar_e2ee_pill")
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Lock,
+                                                    contentDescription = "E2EE Güvenlik Etiketi",
+                                                    tint = if (isHeaderE2eeActive) NeonGreen else CyberYellow,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                                Text(
+                                                    text = if (isHeaderE2eeActive) "E2EE" else "TLS",
+                                                    color = if (isHeaderE2eeActive) NeonGreen else CyberYellow,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Black
+                                                )
+                                            }
+                                        }
+                                    }
                                     if (isContactBlocked) {
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
@@ -820,45 +1308,21 @@ fun DirectMessageScreen(
                                             fontWeight = FontWeight.Black
                                         )
                                     }
-                                    conversation.username?.let { uname ->
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = uname,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = currentPalette.accentColor,
-                                            fontSize = 11.sp
-                                        )
-                                    }
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (isCounterpartTyping) {
-                                        Text(
-                                            text = "yazıyor...",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = NeonGreen,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    } else if (conversation.isOnline) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(NeonGreen)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Çevrimiçi · E2EE",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = NeonGreen
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "Uçtan Uca Şifreli Hat",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = TextSecondary
-                                        )
-                                    }
+                                val subtitleText = when {
+                                    isSelfNotesConv -> "Yalnızca sizin cihazınızda · Kimseye gitmez"
+                                    isCounterpartTyping -> "yazıyor..."
+                                    isGeminiConv -> "GEN AI Asistan"
+                                    conversation.isOnline -> "çevrimiçi"
+                                    else -> "son görülme ${conversation.lastTime.ifBlank { formatClockTime(System.currentTimeMillis()) }}"
                                 }
+                                Text(
+                                    text = subtitleText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isCounterpartTyping || conversation.isOnline) CyberYellow else topBarSubColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     },
@@ -870,72 +1334,46 @@ fun DirectMessageScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Geri",
-                                tint = Color.White
+                                tint = topBarTitleColor
                             )
                         }
                     },
                     actions = {
-                        // Screen capture security toggle (FLAG_SECURE)
-                        IconButton(
-                            onClick = {
-                                isScreenCaptureProtected = !isScreenCaptureProtected
-                                SoundPoolManager.playMechanicalClick()
-                                Toast.makeText(
-                                    context,
-                                    if (isScreenCaptureProtected) "Ekran koruması devrede (FLAG_SECURE Aktif)" else "Ekran koruması devre dışı bırakıldı",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                        if (!isGeminiConv && !isSelfNotesConv) {
+                            IconButton(
+                                onClick = {
+                                    SoundPoolManager.playMechanicalClick()
+                                    if (isContactBlocked) {
+                                        Toast.makeText(context, "Engellenen kullanıcı aranamaz.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        onStartCall(customContactName, true)
+                                    }
+                                },
+                                modifier = Modifier.testTag("dm_video_call_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = "Görüntülü Ara",
+                                    tint = if (isContactBlocked) TextMuted else topBarTitleColor
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = "Ekran Koruması",
-                                tint = if (isScreenCaptureProtected) NeonGreen else NeonRed,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        // Search Button in Chat
-                        IconButton(
-                            onClick = {
-                                SoundPoolManager.playMechanicalClick()
-                                isSearchActive = true
-                            },
-                            modifier = Modifier.testTag("dm_search_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Sohbette Ara",
-                                tint = currentPalette.accentColor
-                            )
-                        }
-
-                        // Individual Chat Theme Picker Button
-                        IconButton(
-                            onClick = {
-                                SoundPoolManager.playMenuNav()
-                                showChatThemeDialog = true
+                            IconButton(
+                                onClick = {
+                                    SoundPoolManager.playMechanicalClick()
+                                    if (isContactBlocked) {
+                                        Toast.makeText(context, "Engellenen kullanıcı aranamaz.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        onStartCall(customContactName, false)
+                                    }
+                                },
+                                modifier = Modifier.testTag("dm_voice_call_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Call,
+                                    contentDescription = "Sesli Ara",
+                                    tint = if (isContactBlocked) TextMuted else topBarTitleColor
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Wallpaper,
-                                contentDescription = "Sohbet Teması",
-                                tint = currentPalette.accentColor
-                            )
-                        }
-
-                        // Emergency Kill-Switch / Panic Button
-                        Button(
-                            onClick = {
-                                showKillSwitchConfirmDialog = true
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = NeonRed),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                            modifier = Modifier
-                                .height(28.dp)
-                                .testTag("dm_panic_button")
-                        ) {
-                            Text("🚨 ÇIKIŞ", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black)
                         }
 
                         Box {
@@ -943,7 +1381,7 @@ fun DirectMessageScreen(
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
                                     contentDescription = "Daha Fazla",
-                                    tint = Color.White
+                                    tint = topBarTitleColor
                                 )
                             }
                             DropdownMenu(
@@ -951,6 +1389,46 @@ fun DirectMessageScreen(
                                 onDismissRequest = { showTopMenu = false },
                                 modifier = Modifier.background(CyberCardBg)
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Sohbette Ara", color = Color.White) },
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = NeonCyan) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        SoundPoolManager.playMechanicalClick()
+                                        isSearchActive = true
+                                    },
+                                    modifier = Modifier.testTag("dm_search_button")
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (isScreenCaptureProtected) "Ekran Koruması (Aktif)" else "Ekran Koruması (Kapalı)", color = if (isScreenCaptureProtected) NeonGreen else Color.White) },
+                                    leadingIcon = { Icon(Icons.Default.Security, contentDescription = null, tint = if (isScreenCaptureProtected) NeonGreen else NeonRed) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        isScreenCaptureProtected = !isScreenCaptureProtected
+                                        SoundPoolManager.playMechanicalClick()
+                                        Toast.makeText(
+                                            context,
+                                            if (isScreenCaptureProtected) "Ekran koruması devrede (FLAG_SECURE Aktif)" else "Ekran koruması devre dışı bırakıldı",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Duvar Kağıdını Değiştir", color = CyberYellow) },
+                                    leadingIcon = { Icon(Icons.Default.Wallpaper, contentDescription = null, tint = CyberYellow) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        showWallpaperDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Sohbet Balonu Teması", color = currentPalette.accentColor) },
+                                    leadingIcon = { Icon(Icons.Default.Wallpaper, contentDescription = null, tint = currentPalette.accentColor) },
+                                    onClick = {
+                                        showTopMenu = false
+                                        showChatThemeDialog = true
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Kişi Profili & Ayarlar", color = currentPalette.accentColor) },
                                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = currentPalette.accentColor) },
@@ -967,12 +1445,28 @@ fun DirectMessageScreen(
                                         showScheduledListDialog = true
                                     }
                                 )
+                                val exportBlocked = chatPrivacyConfig.advancedPrivacyEnabled || chatPrivacyConfig.blockExportAndForward
                                 DropdownMenuItem(
-                                    text = { Text("Sohbeti Dışa Aktar", color = NeonCyan) },
-                                    leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = NeonCyan) },
+                                    text = {
+                                        Text(
+                                            if (exportBlocked) "Dışa Aktar (Kilitli)" else "Sohbeti Dışa Aktar",
+                                            color = if (exportBlocked) TextMuted else NeonCyan
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = if (exportBlocked) Icons.Default.Lock else Icons.Default.Download,
+                                            contentDescription = null,
+                                            tint = if (exportBlocked) NeonRed else NeonCyan
+                                        )
+                                    },
                                     onClick = {
                                         showTopMenu = false
-                                        showExportChatDialog = true
+                                        if (exportBlocked) {
+                                            Toast.makeText(context, "Gelişmiş Sohbet Gizliliği aktif: Dışa aktarma kilitli.", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            showExportChatDialog = true
+                                        }
                                     }
                                 )
                                 DropdownMenuItem(
@@ -983,12 +1477,28 @@ fun DirectMessageScreen(
                                         isSelectionMode = true
                                     }
                                 )
+                                val aiBlocked = chatPrivacyConfig.advancedPrivacyEnabled || chatPrivacyConfig.excludeFromAi
                                 DropdownMenuItem(
-                                    text = { Text("Yapay Zeka Özeti", color = CyberYellow) },
-                                    leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = CyberYellow) },
+                                    text = {
+                                        Text(
+                                            if (aiBlocked) "Yapay Zeka Özeti (Gizlilik Kilitli)" else "Yapay Zeka Özeti",
+                                            color = if (aiBlocked) TextMuted else CyberYellow
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = if (aiBlocked) Icons.Default.Lock else Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = if (aiBlocked) NeonRed else CyberYellow
+                                        )
+                                    },
                                     onClick = {
                                         showTopMenu = false
-                                        showAiSummaryDialog = true
+                                        if (aiBlocked) {
+                                            Toast.makeText(context, "Gelişmiş Sohbet Gizliliği: Bu sohbet AI özetinden hariç tutuldu.", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            showAiSummaryDialog = true
+                                        }
                                     }
                                 )
                                 DropdownMenuItem(
@@ -1029,23 +1539,27 @@ fun DirectMessageScreen(
                                     onClick = {
                                         showTopMenu = false
                                         showKillSwitchConfirmDialog = true
-                                    }
+                                    },
+                                    modifier = Modifier.testTag("dm_panic_button")
                                 )
                             }
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = if (isPaper) PaperSurface else CyberCardBg)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = topBarBg)
                 )
             }
         },
-        containerColor = if (isPaper) PaperBg else CyberBlack,
+        containerColor = Color.Transparent,
         modifier = modifier
     ) { innerPadding ->
-        Column(
+        ChatWallpaperBackground(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .imePadding()
+        ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
             // In-Chat Search Quick Date & Media Filter Chips
             if (isSearchActive) {
@@ -1124,53 +1638,28 @@ fun DirectMessageScreen(
                 }
             }
 
-            // E2EE Security Banner
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF121212))
-                    .padding(vertical = 6.dp, horizontal = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = CyberYellow,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Mesajlar SHA-256 ve E2EE ile şifrelenir. Üçüncü şahıslar okuyamaz.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-
             // Pinned Message Quick Access Banner
             val pinnedMsg = messages.find { it.isPinned }
             if (pinnedMsg != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(currentPalette.otherBubbleBg)
-                        .border(1.dp, currentPalette.accentColor.copy(alpha = 0.5f))
+                        .background(if (isLightChatSurface) Color.White.copy(alpha = 0.94f) else currentPalette.otherBubbleBg)
+                        .border(0.5.dp, if (isLightChatSurface) Color(0xFFD1D7DB) else currentPalette.accentColor.copy(alpha = 0.5f))
                         .clickable {
                             val pIdx = messages.indexOfFirst { it.id == pinnedMsg.id }
                             if (pIdx != -1) {
-                                scope.launch { listState.animateScrollToItem(pIdx) }
+                                scope.launch { listState.animateScrollToItem(pIdx + 1) }
                             }
                         }
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PushPin, contentDescription = null, tint = currentPalette.accentColor, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.PushPin, contentDescription = null, tint = accentYellow, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("SABİTLENMİŞ MESAJ (${pinnedMsg.senderName})", color = currentPalette.accentColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text(pinnedMsg.text, color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("SABİTLENMİŞ MESAJ (${pinnedMsg.senderName})", color = accentYellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(pinnedMsg.text, color = if (isLightChatSurface) PaperText else Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     IconButton(
                         onClick = {
@@ -1180,207 +1669,323 @@ fun DirectMessageScreen(
                                 Toast.makeText(context, "Sabitleme kaldırıldı.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.minimumInteractiveComponentSize()
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Kaldır", tint = TextMuted, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Kaldır", tint = TextMuted, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            // Message History wrapped with customizable ChatWallpaperBackground
-            ChatWallpaperBackground(
+            if (!isGeminiConv) {
+                val e2eeActiveNow = isDirectPeerChat && !peerE2eePubKey.isNullOrBlank()
+                val badgeAccent = when {
+                    isSelfNotesConv -> CyberYellow
+                    e2eeActiveNow -> NeonGreen
+                    isDirectPeerChat -> CyberYellow
+                    else -> NeonCyan
+                }
+                val badgeText = when {
+                    isSelfNotesConv -> "🔒 CİHAZ İÇİ ŞİFRELİ KASA · Sunucuya yüklenmez"
+                    e2eeActiveNow -> "🔒 UÇTAN UCA ŞİFRELİ (E2EE) · Sunucuda şifreli tutulur ve okunamaz"
+                    isDirectPeerChat -> "🛡️ E2EE Anahtar Bekleniyor · TLS aktif (karşı taraf çevrimiçi olunca tam E2EE)"
+                    else -> "🛡️ Grup Sohbeti · TLS Aktarım Koruması Aktif"
+                }
+                Surface(
+                    onClick = { showE2eeDetailsDialog = true },
+                    color = if (isLightChatSurface) PaperSurface else Color(0xFF0B1912),
+                    border = BorderStroke(1.dp, badgeAccent.copy(alpha = 0.65f)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .testTag("dm_e2ee_security_badge")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (e2eeActiveNow || isSelfNotesConv) Icons.Default.VerifiedUser else Icons.Default.Security,
+                            contentDescription = "Uçtan uca şifreleme durumu",
+                            tint = if (isLightChatSurface) PaperText else badgeAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = badgeText,
+                            color = if (isLightChatSurface) PaperText else Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "Detay",
+                            color = if (isLightChatSurface) PaperText else badgeAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+
+            if (!isSelfNotesConv && (!serviceStatus.isOnline || serviceStatus.offlineModeNotificationVisible || serviceStatus.pendingOutboxCount > 0)) {
+                ServiceStatusDashboardCard(
+                    isCloudSignedIn = currentUserUid != null,
+                    onOpenFreeServer = { showP2PTunnelDialog = true },
+                    onOpenOfflineRadar = { showP2PTunnelDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
+
+            // Message History inside original Yellow-Black ChatWallpaperBackground
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                contentPadding = PaddingValues(vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    itemsIndexed(messages, key = { _, msg -> msg.id }) { idx, msg ->
-                        val isMatch = isSearchActive && matchingIndices.contains(idx)
-                        val isCurrent = isSearchActive && matchingIndices.getOrNull(currentMatchIndex) == idx
-                        val isSelected = selectedMessageIds.contains(msg.id)
-                        MessageBubble(
-                            message = msg,
-                            palette = currentPalette,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = isSelected,
-                            onToggleSelect = {
-                                if (isSelected) selectedMessageIds.remove(msg.id) else selectedMessageIds.add(msg.id)
-                            },
-                            onReply = {
-                                replyingToMessage = msg
-                            },
-                            onReaction = { reactionEmoji ->
-                                val mIdx = messages.indexOfFirst { it.id == msg.id }
-                                if (mIdx != -1) {
-                                    val currentReactions = msg.reactions.toMutableList()
-                                    currentReactions.add(reactionEmoji)
-                                    messages[mIdx] = msg.copy(reactions = currentReactions)
-                                }
-                            },
-                            onTranscribe = {
-                                val mIdx = messages.indexOfFirst { it.id == msg.id }
-                                if (mIdx != -1) {
-                                    messages[mIdx] = msg.copy(
-                                        transcribedText = "AI Deşifre: \"Ses tüneli frekans çözümlemesi tamamlandı. Doğrulanmış ses kaydı.\""
-                                    )
-                                    SoundPoolManager.playConfirm()
-                                }
-                            },
-                            onMessageClick = {
-                                if (isSelectionMode) {
-                                    if (isSelected) selectedMessageIds.remove(msg.id) else selectedMessageIds.add(msg.id)
-                                } else {
-                                    selectedMessageForAction = msg
-                                }
-                            },
-                            isSearchMatch = isMatch,
-                            isCurrentActiveMatch = isCurrent,
-                            highlightQuery = if (isSearchActive) searchQuery else ""
-                        )
-                    }
-                    if (isCounterpartTyping) {
-                        item {
-                            TypingIndicatorBubble(
-                                partnerName = customContactName,
-                                palette = currentPalette,
-                                isPaper = isPaper
+                item(key = "chat_header_notice") {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                    ) {
+                        if (messages.isEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isLightChatSurface) PaperSurface else CyberCardBg.copy(alpha = 0.92f),
+                                border = BorderStroke(0.8.dp, if (isLightChatSurface) PaperBorder else CyberYellow.copy(alpha = 0.45f))
+                            ) {
+                                Text(
+                                    text = formatChatDayHeader(System.currentTimeMillis()),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLightChatSurface) PaperTextMuted else CyberYellow,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isLightChatSurface) PaperSurface else Color(0xFF1A1604).copy(alpha = 0.95f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isLightChatSurface) PaperBorder else if (isDirectPeerChat && !peerE2eePubKey.isNullOrBlank()) NeonGreen.copy(alpha = 0.65f) else CyberYellow.copy(alpha = 0.55f)
+                            ),
+                            modifier = Modifier
+                                .padding(horizontal = 14.dp)
+                                .clickable { showE2eeDetailsDialog = true }
+                        ) {
+                            Text(
+                                text = when {
+                                    isSelfNotesConv ->
+                                        "📝 Sadece Size Özel Not Defteri · Buraya yazdığınız notlar, fotoğraflar ve ses kayıtları yalnızca cihazınızda kalır ve kimseye gönderilmez."
+                                    isDirectPeerChat && !peerE2eePubKey.isNullOrBlank() ->
+                                        "🔒 Uçtan Uca Şifreleme (E2EE · ECDH P-256 + AES-256-GCM) Aktif.\nMesajlarınız sunucuda yalnızca şifreli (E2EE:v1:...) olarak tutulur; sunucu veya 3. taraflar tarafından okunamaz."
+                                    isDirectPeerChat ->
+                                        "🛡️ GENeral Chat Güvenlik Kalkanı · TLS aktarımı aktif. Karşı taraf anahtarını yayınladığında tüm mesajlar sunucuda yalnızca okunamaz E2EE şifreli olarak tutulacaktır."
+                                    else ->
+                                        "🛡️ GENeral Chat · Bulut sohbetleri TLS ile aktarılır. Ekran/dışa aktarım koruması için sohbet profilinden Gelişmiş Gizlilik açılabilir."
+                                },
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp,
+                                textAlign = TextAlign.Center,
+                                color = if (isLightChatSurface) PaperText else if (isDirectPeerChat && !peerE2eePubKey.isNullOrBlank()) NeonGreen else CyberYellow,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
                             )
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
-            }
 
-            // Dual Device Switcher Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CyberBlack)
-                    .border(androidx.compose.foundation.BorderStroke(0.5.dp, CyberCardBorder))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (sendAsCounterpart) NeonCyan else currentPalette.accentColor)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (sendAsCounterpart) "Aktif: 2. Cihaz (${conversation.name})" else "Aktif: Bu Cihaz (Sen)",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (sendAsCounterpart) NeonCyan else currentPalette.accentColor
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (!sendAsCounterpart) currentPalette.accentColor else CyberCardBg)
-                            .clickable {
-                                if (sendAsCounterpart) {
-                                    sendAsCounterpart = false
-                                    SoundPoolManager.playMechanicalClick()
-                                }
+                itemsIndexed(
+                    items = messages,
+                    key = { _, msg -> msg.id },
+                    contentType = { _, msg -> msg.attachmentType ?: if (msg.isVoiceNote) "VOICE" else "TEXT" }
+                ) { idx, msg ->
+                    val showDayDivider = idx == 0 || !isSameCalendarDay(messages[idx - 1].timestamp, msg.timestamp)
+                    if (showDayDivider) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isLightChatSurface) PaperSurface else CyberCardBg.copy(alpha = 0.92f),
+                                border = BorderStroke(0.8.dp, if (isLightChatSurface) PaperBorder else CyberYellow.copy(alpha = 0.45f))
+                            ) {
+                                Text(
+                                    text = formatChatDayHeader(msg.timestamp),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLightChatSurface) PaperTextMuted else CyberYellow,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+                                )
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "Bu Cihaz",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (!sendAsCounterpart) CyberBlack else Color.White
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (sendAsCounterpart) NeonCyan else CyberCardBg)
-                            .clickable {
-                                if (!sendAsCounterpart) {
-                                    sendAsCounterpart = true
-                                    SoundPoolManager.playMechanicalClick()
-                                }
-                            }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "2. Cihaz",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (sendAsCounterpart) CyberBlack else Color.White
-                        )
-                    }
-                }
-            }
-
-            // Customizable Cyberpunk Quick Action Bar
-            QuickActionBar(
-                burnerSeconds = if (activeBurnerSeconds > 0) activeBurnerSeconds else null,
-                onCycleBurner = {
-                    activeBurnerSeconds = when (activeBurnerSeconds) {
-                        0 -> 10
-                        10 -> 30
-                        30 -> 60
-                        else -> 0
-                    }
-                    SoundPoolManager.playMechanicalClick()
-                    val label = if (activeBurnerSeconds > 0) "${activeBurnerSeconds}sn İmha Sayacı Aktif" else "İmha Sayacı Kapatıldı"
-                    Toast.makeText(context, label, Toast.LENGTH_SHORT).show()
-                },
-                onTriggerVoiceNote = {
-                    val hasPermission = ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (hasPermission) {
-                        val file = voiceRecorder.start()
-                        if (file != null) {
-                            isRecordingVoiceNote = true
-                            recordingSeconds = 0
-                            SoundPoolManager.playMechanicalClick()
-                        } else {
-                            Toast.makeText(context, "Mikrofon başlatılamadı.", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
-                },
-                onPickPhoto = {
-                    sendMessage(
-                        overrideText = "📷 Şifreli Fotoğraf [GIZLI_FOTOGRAF_E2EE.JPG]",
-                        attachmentType = "IMAGE",
-                        attachmentName = "GIZLI_FOTOGRAF_E2EE.JPG"
+                    val isMatch = isSearchActive && matchingIndices.contains(idx)
+                    val isCurrent = isSearchActive && matchingIndices.getOrNull(currentMatchIndex) == idx
+                    val isSelected = selectedMessageIds.contains(msg.id)
+                    MessageBubble(
+                        message = msg,
+                        currentUserUid = currentUserUid,
+                        peerUid = conversation.participantIds.firstOrNull { it != currentUserUid },
+                        isSelfNotes = isSelfNotesConv,
+                        liveLocations = mergedLiveLocations,
+                        onOpenFullScreenImage = { fullScreenImageMsg = it },
+                        palette = currentPalette,
+                        isLightChatSurface = isLightChatSurface,
+                        isSelectionMode = isSelectionMode,
+                        isSelected = isSelected,
+                        onToggleSelect = {
+                            if (isSelected) selectedMessageIds.remove(msg.id) else selectedMessageIds.add(msg.id)
+                        },
+                        onReply = {
+                            replyingToMessage = msg
+                        },
+                        onReaction = { reactionEmoji ->
+                            val mIdx = messages.indexOfFirst { it.id == msg.id }
+                            if (mIdx != -1) {
+                                val currentReactions = msg.reactions.toMutableList()
+                                currentReactions.add(reactionEmoji)
+                                messages[mIdx] = msg.copy(reactions = currentReactions)
+                            }
+                        },
+                        onTranscribe = {
+                            val mIdx = messages.indexOfFirst { it.id == msg.id }
+                            if (mIdx != -1) {
+                                messages[mIdx] = msg.copy(
+                                    transcribedText = "AI Deşifre: \"Ses tüneli frekans çözümlemesi tamamlandı. Doğrulanmış ses kaydı.\""
+                                )
+                                SoundPoolManager.playConfirm()
+                            }
+                        },
+                        onMessageClick = {
+                            if (isSelectionMode) {
+                                if (isSelected) selectedMessageIds.remove(msg.id) else selectedMessageIds.add(msg.id)
+                            } else {
+                                selectedMessageForAction = msg
+                            }
+                        },
+                        onMessageLongClick = {
+                            if (msg.text.isNotBlank()) {
+                                clipboardManager.setText(AnnotatedString(msg.text))
+                                SoundPoolManager.playMechanicalClick()
+                                Toast.makeText(context, "Mesaj panoya kopyalandı.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                selectedMessageForAction = msg
+                            }
+                        },
+                        isSearchMatch = isMatch,
+                        isCurrentActiveMatch = isCurrent,
+                        highlightQuery = if (isSearchActive) searchQuery else ""
                     )
-                },
-                onPickFile = {
-                    showAttachmentDialog = true
-                },
-                onOpenAiSummary = {
-                    showAiSummaryDialog = true
-                },
-                onOpenMediaGallery = {
-                    showMediaGalleryDialog = true
-                },
-                onOpenP2PTunnel = {
-                    showP2PTunnelDialog = true
-                },
-                onOpenThemePicker = {
-                    showChatThemeDialog = true
-                },
-                isPaper = isPaper
-            )
+                }
+                if (isCounterpartTyping) {
+                    item {
+                        TypingIndicatorBubble(
+                            partnerName = customContactName,
+                            palette = currentPalette,
+                            isPaper = isLightChatSurface
+                        )
+                    }
+                }
+            }
+
+            // Transparent GEN AI Connectivity / Server Error Banner inside DM
+            if (isGeminiConv && aiErrorInfo != null) {
+                val err = aiErrorInfo!!
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2D0A0A)),
+                    border = BorderStroke(1.dp, NeonRed),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .testTag("dm_ai_error_banner")
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(16.dp))
+                            Text(err.title, color = CyberYellow, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                        }
+                        Text(err.userMessage, color = Color.White, fontSize = 11.sp, lineHeight = 15.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (err.isRetryable && !lastFailedAiPrompt.isNullOrBlank()) {
+                                Button(
+                                    onClick = {
+                                        val retryPrompt = lastFailedAiPrompt.orEmpty()
+                                        aiErrorInfo = null
+                                        sendMessage(overrideText = retryPrompt)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.testTag("dm_ai_retry_button")
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Yeniden Dene", color = CyberBlack, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                            if (!lastFailedAiPrompt.isNullOrBlank()) {
+                                TextButton(
+                                    onClick = {
+                                        val failedPrompt = lastFailedAiPrompt.orEmpty()
+                                        val ctxSummary = ChatContextCache.buildPromptContext(context, failedPrompt)
+                                        val offlineReply = OfflineAiEngine.generateResponse(
+                                            prompt = failedPrompt,
+                                            mode = AiMode.GENERAL,
+                                            chatContextSummary = ctxSummary,
+                                            webResearch = null
+                                        )
+                                        val tNow = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                                        val mId = "msg_genai_offline_${System.currentTimeMillis()}"
+                                        messages.add(
+                                            DirectMessage(
+                                                id = mId,
+                                                conversationId = conversation.id,
+                                                senderName = "GEN AI",
+                                                isMe = false,
+                                                text = offlineReply,
+                                                time = tNow,
+                                                timestamp = System.currentTimeMillis()
+                                            )
+                                        )
+                                        aiErrorInfo = null
+                                        lastFailedAiPrompt = null
+                                    }
+                                ) {
+                                    Text("Çevrimdışı Yanıtla", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            TextButton(onClick = { aiErrorInfo = null }) {
+                                Text("Kapat", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
 
             // Quote / Reply Preview Bar
             if (replyingToMessage != null) {
@@ -1417,7 +2022,7 @@ fun DirectMessageScreen(
                     }
                     IconButton(
                         onClick = { replyingToMessage = null },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.minimumInteractiveComponentSize()
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Yanıtı İptal Et", tint = TextMuted, modifier = Modifier.size(16.dp))
                     }
@@ -1455,23 +2060,36 @@ fun DirectMessageScreen(
                 }
             }
 
-            // Listening banner
+            // High-Contrast Visual Recording Indicator Banner
             if (speechState.isListening) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(NeonRed)
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(Color(0xFFB00018))
+                        .border(2.dp, CyberYellow)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(imageVector = Icons.Default.Mic, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Ses algılanıyor: Konuşmanız doğrudan mesaja çevriliyor...",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(CyberYellow)
+                                .border(1.5.dp, Color.White, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "● REC · SES KAYDI AKTİF — KONUŞUN...",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    TextButton(onClick = { speechState.stopListening() }) {
+                        Text("Durdur", color = CyberYellow, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
                 }
             }
 
@@ -1598,186 +2216,290 @@ fun DirectMessageScreen(
                     }
                 }
             } else {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (isPaper) PaperSurface else CyberCardBg)
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .navigationBarsPadding()
                 ) {
-                    // Schedule message button (shows badge if any pending)
-                    Box {
-                        IconButton(
-                            onClick = {
-                                SoundPoolManager.playMechanicalClick()
-                                if (inputMessage.isNotBlank()) {
-                                    showScheduleDialog = true
-                                } else {
-                                    showScheduledListDialog = true
-                                }
-                            },
-                            modifier = Modifier.size(38.dp)
+                    if (isContactBlocked && !isGeminiConv) {
+                        Surface(
+                            color = Color(0xFF2B0E0E),
+                            border = BorderStroke(1.dp, NeonRed.copy(alpha = 0.6f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = "Mesaj Zamanla",
-                                tint = if (scheduledMessages.isNotEmpty()) NeonGreen else (if (isPaper) PaperText else CyberYellow),
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = "Bu kullanıcı engellendi. Mesaj ve arama göndermek için profil menüsünden engeli kaldırın.",
+                                color = NeonRed,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             )
                         }
-                        if (scheduledMessages.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(16.dp)
-                                    .clip(CircleShape)
-                                    .background(NeonGreen),
-                                contentAlignment = Alignment.Center
+                    }
+                    AnimatedVisibility(visible = showEmojiTray) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            listOf("😀", "😂", "❤️", "🔥", "👍", "🙏", "🎉", "🛡️").forEach { emo ->
+                                Surface(
+                                    onClick = {
+                                        inputMessage += emo
+                                        SoundPoolManager.playKeyboardClick()
+                                    },
+                                    shape = CircleShape,
+                                    color = if (isLightChatSurface) Color.White else CyberCardBg,
+                                    shadowElevation = 2.dp
+                                ) {
+                                    Text(
+                                        text = emo,
+                                        fontSize = 18.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                            Surface(
+                                onClick = {
+                                    SoundPoolManager.playMechanicalClick()
+                                    if (speechState.isListening) speechState.stopListening() else speechState.startListening()
+                                },
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (speechState.isListening) NeonRed else if (isLightChatSurface) PaperSurface else CyberCardBg,
+                                border = BorderStroke(1.dp, if (speechState.isListening) NeonRed else accentYellow)
                             ) {
-                                Text(
-                                    text = scheduledMessages.size.toString(),
-                                    color = CyberBlack,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Mic,
+                                        contentDescription = "Sesle Dikte Et",
+                                        tint = if (speechState.isListening) Color.White else accentYellow,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (speechState.isListening) "Dinleniyor" else "Dikte",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (speechState.isListening) Color.White else if (isLightChatSurface) PaperText else Color.White
+                                    )
+                                }
+                            }
+                            Surface(
+                                onClick = {
+                                    activeBurnerSeconds = when (activeBurnerSeconds) {
+                                        0 -> 10
+                                        10 -> 30
+                                        30 -> 60
+                                        else -> 0
+                                    }
+                                    SoundPoolManager.playMechanicalClick()
+                                },
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (activeBurnerSeconds > 0) NeonRed.copy(alpha = 0.2f) else if (isLightChatSurface) Color.White else CyberCardBg,
+                                border = BorderStroke(1.dp, if (activeBurnerSeconds > 0) NeonRed else CyberCardBorder)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Timer, contentDescription = "İmha Sayacı", tint = if (activeBurnerSeconds > 0) NeonRed else CyberYellow, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (activeBurnerSeconds > 0) "${activeBurnerSeconds}s" else "İmha",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isLightChatSurface) PaperText else Color.White
+                                    )
+                                }
                             }
                         }
                     }
 
-                    // Attach button
-                    IconButton(
-                        onClick = {
-                            SoundPoolManager.playMechanicalClick()
-                            showAttachmentDialog = true
-                        },
-                        modifier = Modifier.size(38.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AttachFile,
-                            contentDescription = "Dosya Ekle",
-                            tint = if (isPaper) PaperText else CyberYellow,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Text field
-                    OutlinedTextField(
-                        value = inputMessage,
-                        onValueChange = {
-                            inputMessage = it
-                            SoundPoolManager.playKeyboardClick()
-                        },
-                        placeholder = { Text("Mesaj yazın...", color = if (isPaper) PaperTextMuted else TextMuted, fontSize = 13.sp) },
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .testTag("dm_message_input"),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = if (isPaper) PaperBorder else CyberYellow,
-                            unfocusedBorderColor = if (isPaper) PaperBorder else CyberCardBorder,
-                            focusedTextColor = if (isPaper) PaperText else Color.White,
-                            unfocusedTextColor = if (isPaper) PaperText else Color.White,
-                            focusedContainerColor = if (isPaper) PaperBg else CyberBlack,
-                            unfocusedContainerColor = if (isPaper) PaperBg else CyberBlack
-                        ),
-                        singleLine = false,
-                        maxLines = 4,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { sendMessage() })
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // Speech-to-Text Microphone
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(if (speechState.isListening) NeonRed else CyberBlack)
-                            .border(1.dp, if (speechState.isListening) NeonRed else CyberCardBorder, CircleShape),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        IconButton(
-                            onClick = {
-                                SoundPoolManager.playMechanicalClick()
-                                if (speechState.isListening) {
-                                    speechState.stopListening()
-                                } else {
-                                    speechState.startListening()
+                        // Signature Yellow-Black GENeral Chat Composer
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(24.dp),
+                            color = if (isLightChatSurface) PaperSurface else CyberCardBg,
+                            shadowElevation = 2.dp,
+                            border = BorderStroke(1.dp, if (isLightChatSurface) PaperBorder else CyberYellow.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        SoundPoolManager.playMechanicalClick()
+                                        showEmojiTray = !showEmojiTray
+                                    },
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.EmojiEmotions,
+                                        contentDescription = "İfadeler ve Sesle Yazma",
+                                        tint = if (showEmojiTray) CyberYellow else if (isLightChatSurface) PaperTextMuted else TextSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
-                            },
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (speechState.isListening) Icons.Default.MicOff else Icons.Default.Mic,
-                                contentDescription = "Sesle Yaz",
-                                tint = if (speechState.isListening) Color.White else CyberYellow,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                                OutlinedTextField(
+                                    value = inputMessage,
+                                    onValueChange = {
+                                        inputMessage = it
+                                        SoundPoolManager.playKeyboardClick()
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            text = strings.msgInputPlaceholder,
+                                            color = if (isLightChatSurface) PaperTextMuted else TextMuted,
+                                            fontSize = 15.sp
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("dm_message_input"),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+                                        focusedTextColor = if (isLightChatSurface) PaperText else Color.White,
+                                        unfocusedTextColor = if (isLightChatSurface) PaperText else Color.White,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent
+                                    ),
+                                    singleLine = false,
+                                    maxLines = 4,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                    keyboardActions = KeyboardActions(onSend = { sendMessage() })
+                                )
 
-                    // Send voice note via real microphone or Send text button
-                    if (inputMessage.isBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(CyberCardBorder)
-                                .clickable {
-                                    SoundPoolManager.playMechanicalClick()
-                                    val hasPermission = ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.RECORD_AUDIO
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                    if (hasPermission) {
-                                        val file = voiceRecorder.start()
-                                        if (file != null) {
-                                            isRecordingVoiceNote = true
-                                            recordingSeconds = 0
+                                IconButton(
+                                    onClick = {
+                                        SoundPoolManager.playMechanicalClick()
+                                        showAttachmentDialog = true
+                                    },
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AttachFile,
+                                        contentDescription = "Dosya, Konum veya Etkinlik Ekle",
+                                        tint = if (isLightChatSurface) PaperTextMuted else CyberYellow.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        SoundPoolManager.playMechanicalClick()
+                                        val granted = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.CAMERA
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                        if (granted) {
+                                            try {
+                                                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                                                cameraPreviewLauncher.launch(null)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Kamera açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
                                         } else {
-                                            Toast.makeText(context, "Mikrofon başlatılamadı.", Toast.LENGTH_SHORT).show()
+                                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                         }
-                                    } else {
-                                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.GraphicEq,
-                                contentDescription = "Mikrofon ile Sesli Not Kaydet",
-                                tint = CyberYellow,
-                                modifier = Modifier.size(20.dp)
-                            )
+                                    },
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Kamera ile Fotoğraf Çek",
+                                        tint = if (isLightChatSurface) PaperTextMuted else CyberYellow.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
                         }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(CyberYellow),
-                            contentAlignment = Alignment.Center
-                        ) {
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Signature Yellow-Black 48.dp Mic / Send Circular Button
+                        if (inputMessage.isBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isLightChatSurface) PaperText else CyberYellow)
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = "Mikrofon ile Sesli Not Kaydet"
+                                    }
+                                    .clickable {
+                                        SoundPoolManager.playMechanicalClick()
+                                        val hasPermission = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.RECORD_AUDIO
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                        if (hasPermission) {
+                                            val file = voiceRecorder.start()
+                                            if (file != null) {
+                                                isRecordingVoiceNote = true
+                                                recordingSeconds = 0
+                                            } else {
+                                                Toast.makeText(context, "Mikrofon başlatılamadı.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = null,
+                                    tint = if (isLightChatSurface) PaperBg else CyberBlack,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        } else {
                             IconButton(
                                 onClick = { sendMessage() },
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isLightChatSurface) PaperText else CyberYellow)
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = "Mesajı Gönder"
+                                    }
                                     .testTag("dm_send_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
                                     contentDescription = "Gönder",
-                                    tint = CyberBlack,
-                                    modifier = Modifier.size(18.dp)
+                                    tint = if (isLightChatSurface) PaperBg else CyberBlack,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
                     }
                 }
             }
+        }
         }
     }
 
@@ -1789,7 +2511,7 @@ fun DirectMessageScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AttachFile, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Şifreli Medya & Veri Paketi Gönder", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Dosya & Medya Paketi Gönder", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -1797,15 +2519,25 @@ fun DirectMessageScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Option 1: Photo / Image
+                    Text(
+                        text = "100 MB'a kadar asenkron bulut aktarımı; 1,5 GB ve üzeri (4 GB'a kadar) video/dosyalarda uzak ağda WebRTC P2P ve aynı Wi-Fi'da HTTP Range akışı desteklenir.",
+                        color = NeonCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    // Option 1: Photo from Photo Picker
                     Card(
                         onClick = {
                             showAttachmentDialog = false
-                            sendMessage(
-                                overrideText = "📷 Şifreli Fotoğraf [GIZLI_FOTOGRAF_E2EE.JPG]",
-                                attachmentType = "IMAGE",
-                                attachmentName = "GIZLI_FOTOGRAF_E2EE.JPG"
-                            )
+                            try {
+                                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                                mediaPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Galeri açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         colors = CardDefaults.cardColors(containerColor = CyberBlack),
                         border = androidx.compose.foundation.BorderStroke(1.dp, CyberCardBorder),
@@ -1815,93 +2547,24 @@ fun DirectMessageScreen(
                             Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("📷 Fotoğraf Gönder", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("EXIF meta verileri temizlenir, E2EE ile şifrelenir", color = TextSecondary, fontSize = 10.sp)
+                                Text("📷 Galeriden Fotoğraf Seç", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Yüksek çözünürlüklü ham görsel seçilir", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
                     }
 
-                    // Option 2: Document (.pdf / .doc)
+                    // Option 2: Video from Photo/Video Picker
                     Card(
                         onClick = {
                             showAttachmentDialog = false
-                            sendMessage(
-                                overrideText = "📄 Şifreli Belge Raporu [GIZLI_RAPOR_2026.PDF]",
-                                attachmentType = "DOCUMENT",
-                                attachmentName = "GIZLI_RAPOR_2026.PDF"
-                            )
-                        },
-                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CyberCardBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Description, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(22.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("📄 Belge Gönder (PDF / DOC)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("AES-256 korumalı güvenli doküman", color = TextSecondary, fontSize = 10.sp)
+                            try {
+                                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                                mediaPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                                )
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Video seçici açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
-                        }
-                    }
-
-                    // Option 3: File / Archive (.zip)
-                    Card(
-                        onClick = {
-                            showAttachmentDialog = false
-                            sendMessage(
-                                overrideText = "📁 Şifreli Arşiv [GIZLI_ARSIV.ZIP]",
-                                attachmentType = "FILE",
-                                attachmentName = "GIZLI_ARSIV.ZIP"
-                            )
-                        },
-                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CyberCardBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Folder, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(22.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("📁 Dosya / Arşiv (ZIP / RAW)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Sıkıştırılmış ikili veri bloğu transferi", color = TextSecondary, fontSize = 10.sp)
-                            }
-                        }
-                    }
-
-                    // Option 4: APK Package (.apk)
-                    Card(
-                        onClick = {
-                            showAttachmentDialog = false
-                            sendMessage(
-                                overrideText = "🤖 Android Uygulama Paketi [general_chat_v7.7.3.apk]",
-                                attachmentType = "APK",
-                                attachmentName = "general_chat_v7.7.3.apk"
-                            )
-                        },
-                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Android, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("🤖 APK Dosyası Gönder", color = NeonGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Doğrulanmış Android paketi (v7.7.3)", color = TextSecondary, fontSize = 10.sp)
-                            }
-                        }
-                    }
-
-                    // Option 5: Video (.mp4)
-                    Card(
-                        onClick = {
-                            showAttachmentDialog = false
-                            sendMessage(
-                                overrideText = "🎥 Şifreli Video Klip [GIZLI_VIDEO_E2EE.MP4]",
-                                attachmentType = "VIDEO",
-                                attachmentName = "GIZLI_VIDEO_E2EE.MP4"
-                            )
                         },
                         colors = CardDefaults.cardColors(containerColor = CyberBlack),
                         border = androidx.compose.foundation.BorderStroke(1.dp, CyberCardBorder),
@@ -1911,13 +2574,63 @@ fun DirectMessageScreen(
                             Icon(Icons.Default.Movie, contentDescription = null, tint = Color(0xFFF43F5E), modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("🎥 Video Klip Gönder", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Uçtan uca şifreli MP4 video akışı", color = TextSecondary, fontSize = 10.sp)
+                                Text("🎥 Video Seç (1,5 GB – 4 GB Destekli)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("MP4/MKV WebRTC P2P ve HTTP Range akışı", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
                     }
 
-                    // Option 6: Link / Web URL
+                    // Option 3: Document (PDF / DOC / TXT / XLS)
+                    Card(
+                        onClick = {
+                            showAttachmentDialog = false
+                            try {
+                                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                                filePickerLauncher.launch(arrayOf("application/pdf", "application/msword", "text/plain", "*/*"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Belge seçici açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CyberCardBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Description, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("📄 Belge Seç (PDF / DOC / TXT)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("1,5 GB – 4 GB'a kadar güvenli doküman transferi", color = TextSecondary, fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    // Option 4: Any File / Archive / APK
+                    Card(
+                        onClick = {
+                            showAttachmentDialog = false
+                            try {
+                                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                                filePickerLauncher.launch(arrayOf("*/*"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Dosya seçici açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Folder, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("📲 Her Türlü Dosya / ZIP / APK (1,5+ GB)", color = NeonGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("4 GB'a kadar diskten sıfır bellek şişmeli akış", color = Color.White.copy(alpha = 0.85f), fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    // Option 5: Link / Web URL
                     Card(
                         onClick = {
                             showAttachmentDialog = false
@@ -1932,30 +2645,64 @@ fun DirectMessageScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text("🔗 Bağlantı / Link Ekle", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Güvenlik taramalı web bağlantısı paylaşımı", color = TextSecondary, fontSize = 10.sp)
+                                Text("Web bağlantısı paylaşımı", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
                     }
 
-                    // Option 7: Real device file picker
+                    // Option 6: Konum Paylaş (Location)
                     Card(
                         onClick = {
-                            try {
-                                filePickerLauncher.launch("*/*")
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Dosya seçici açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            showAttachmentDialog = false
+                            val hasLoc = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+                            if (hasLoc) {
+                                resolveLastLocationAndOpenDialog()
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
                             }
                         },
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CyberYellow),
+                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Download, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(22.dp))
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("📲 Cihazdan Gerçek Dosya Seç", color = CyberYellow, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Cihazınızın yerel depolamasından dosya aktar", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp)
+                                Text("📍 Konum Paylaş", color = NeonGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("GPS veya adres ile canlı konum pini gönder", color = TextSecondary, fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    // Option 7: Etkinlik Planı Oluştur (Event Plan)
+                    Card(
+                        onClick = {
+                            showAttachmentDialog = false
+                            showEventDialog = true
+                        },
+                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Event, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("📅 Etkinlik Planı Oluştur", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Tarih, saat ve buluşma yeri planı paylaş", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
                     }
@@ -1965,6 +2712,336 @@ fun DirectMessageScreen(
             dismissButton = {
                 TextButton(onClick = { showAttachmentDialog = false }) {
                     Text("Vazgeç", color = TextSecondary)
+                }
+            },
+            containerColor = CyberCardBg,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Official Location & Real-Time Live Location Share Dialog
+    if (showLocationDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = NeonGreen)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Resmi Konum Paylaşımı", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = isLiveLocationMode,
+                            onClick = { isLiveLocationMode = true },
+                            label = { Text("Canlı Konum (GPS)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = NeonGreen,
+                                selectedLabelColor = CyberBlack
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = !isLiveLocationMode,
+                            onClick = { isLiveLocationMode = false },
+                            label = { Text("Anlık Pin", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CyberYellow,
+                                selectedLabelColor = CyberBlack
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (isLiveLocationMode) {
+                        Text(
+                            text = if (isSelfNotesConv) {
+                                "Cihaz GPS uydusuyla yalnızca bu sohbette canlı takip"
+                            } else {
+                                "5 saniyede bir gerçek zamanlı GPS koordinatı güncellenir"
+                            },
+                            color = NeonCyan,
+                            fontSize = 10.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(15 to "15 dk", 60 to "1 sa", 0 to "Manuel").forEach { (mins, textLabel) ->
+                                FilterChip(
+                                    selected = liveLocationDurationMin == mins,
+                                    onClick = { liveLocationDurationMin = mins },
+                                    label = { Text(textLabel, fontSize = 10.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = CyberYellow,
+                                        selectedLabelColor = CyberBlack
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            if (LiveLocationManager.hasLocationPermission(context)) {
+                                scope.launch {
+                                    isFetchingGpsSnapshot = true
+                                    val fresh = LiveLocationManager.fetchFreshLocationSnapshot(context)
+                                    isFetchingGpsSnapshot = false
+                                    if (fresh != null) {
+                                        locationLat = String.format(Locale.US, "%.5f", fresh.latitude)
+                                        locationLng = String.format(Locale.US, "%.5f", fresh.longitude)
+                                        locationAccuracyMeters = fresh.accuracy.toDouble()
+                                        Toast.makeText(context, "Güncel GPS konumu alındı.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "GPS sinyali alınamadı; konum ayarlarını kontrol edin.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            }
+                        },
+                        enabled = !isFetchingGpsSnapshot,
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberBlack),
+                        border = BorderStroke(1.dp, NeonCyan),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (isFetchingGpsSnapshot) "GPS Konumu Alınıyor..." else "📡 Güncel GPS Konumunu Al (Resmi)",
+                            color = NeonCyan,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = locationLabel,
+                        onValueChange = { locationLabel = it },
+                        label = { Text("Yer / Adres Başlığı", color = TextSecondary) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NeonGreen,
+                            unfocusedBorderColor = CyberCardBorder,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = locationLat,
+                            onValueChange = { locationLat = it },
+                            label = { Text("Enlem (Lat)", color = TextSecondary) },
+                            placeholder = { Text("41.0082", color = TextMuted) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NeonGreen,
+                                unfocusedBorderColor = CyberCardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = locationLng,
+                            onValueChange = { locationLng = it },
+                            label = { Text("Boylam (Lng)", color = TextSecondary) },
+                            placeholder = { Text("28.9784", color = TextMuted) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NeonGreen,
+                                unfocusedBorderColor = CyberCardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val label = locationLabel.trim().ifBlank { "Paylaşılan Konum" }
+                        val latDouble = locationLat.trim().replace(',', '.').toDoubleOrNull()
+                        val lngDouble = locationLng.trim().replace(',', '.').toDoubleOrNull()
+                        if (isLiveLocationMode) {
+                            if (latDouble == null || lngDouble == null) {
+                                Toast.makeText(context, "Canlı konum için önce geçerli GPS koordinatı alın veya girin.", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            val locId = "loc_${System.currentTimeMillis()}"
+                            val participants = if (isSelfNotesConv) emptyList()
+                            else (conversation.participantIds + listOfNotNull(currentUserUid)).distinct()
+                            LiveLocationManager.startLiveLocationSession(
+                                context = context,
+                                locationId = locId,
+                                conversationId = conversation.id,
+                                senderId = currentUserUid ?: "local_user",
+                                senderName = currentUserDisplayName,
+                                participantIds = participants,
+                                initialLatitude = latDouble,
+                                initialLongitude = lngDouble,
+                                initialAccuracy = locationAccuracyMeters,
+                                label = label,
+                                durationMinutes = liveLocationDurationMin
+                            )
+                            val durBadge = if (liveLocationDurationMin > 0) "${liveLocationDurationMin} dk" else "Durdurana kadar"
+                            showLocationDialog = false
+                            sendMessage(
+                                overrideText = "📡 Canlı Konum ($durBadge): $label (${String.format(Locale.US, "%.5f", latDouble)}, ${String.format(Locale.US, "%.5f", lngDouble)})",
+                                attachmentType = "LIVE_LOCATION",
+                                attachmentName = label,
+                                attachmentUrl = "$locId|${String.format(Locale.US, "%.5f", latDouble)},${String.format(Locale.US, "%.5f", lngDouble)}|$liveLocationDurationMin"
+                            )
+                        } else {
+                            val lat = locationLat.trim()
+                            val lng = locationLng.trim()
+                            val geoUri = if (lat.isNotBlank() && lng.isNotBlank()) {
+                                "geo:$lat,$lng?q=$lat,$lng(${Uri.encode(label)})"
+                            } else {
+                                "geo:0,0?q=${Uri.encode(label)}"
+                            }
+                            val descText = if (lat.isNotBlank() && lng.isNotBlank()) {
+                                "📍 $label ($lat, $lng)"
+                            } else {
+                                "📍 $label"
+                            }
+                            showLocationDialog = false
+                            sendMessage(
+                                overrideText = descText,
+                                attachmentType = "LOCATION",
+                                attachmentName = label,
+                                attachmentUrl = geoUri
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
+                ) {
+                    Text(if (isLiveLocationMode) "Canlı Konum Başlat" else "Konumu Gönder", color = CyberBlack, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationDialog = false }) {
+                    Text("İptal", color = TextSecondary)
+                }
+            },
+            containerColor = CyberCardBg,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Event Plan Creation Dialog
+    if (showEventDialog) {
+        AlertDialog(
+            onDismissRequest = { showEventDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Event, contentDescription = null, tint = NeonCyan)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Etkinlik Planı Oluştur", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = eventTitle,
+                        onValueChange = { eventTitle = it },
+                        label = { Text("Etkinlik Adı", color = TextSecondary) },
+                        placeholder = { Text("Örn: Kahve Buluşması", color = TextMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NeonCyan,
+                            unfocusedBorderColor = CyberCardBorder,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = eventDate,
+                            onValueChange = { eventDate = it },
+                            label = { Text("Tarih", color = TextSecondary) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NeonCyan,
+                                unfocusedBorderColor = CyberCardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = eventTime,
+                            onValueChange = { eventTime = it },
+                            label = { Text("Saat", color = TextSecondary) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NeonCyan,
+                                unfocusedBorderColor = CyberCardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = eventPlace,
+                        onValueChange = { eventPlace = it },
+                        label = { Text("Konum / Not", color = TextSecondary) },
+                        placeholder = { Text("Örn: Kadıköy İskele", color = TextMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NeonCyan,
+                            unfocusedBorderColor = CyberCardBorder,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val title = eventTitle.trim()
+                        if (title.isBlank()) {
+                            Toast.makeText(context, "Lütfen etkinlik adı girin.", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val d = eventDate.trim().ifBlank { "Bugün" }
+                        val t = eventTime.trim().ifBlank { "19:00" }
+                        val p = eventPlace.trim().ifBlank { "Belirtilmedi" }
+                        showEventDialog = false
+                        sendMessage(
+                            overrideText = "📅 Etkinlik: $title · $d $t ($p)",
+                            attachmentType = "EVENT",
+                            attachmentName = title,
+                            attachmentUrl = "$d|$t|$p"
+                        )
+                        eventTitle = ""
+                        eventPlace = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                ) {
+                    Text("Planı Gönder", color = CyberBlack, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEventDialog = false }) {
+                    Text("İptal", color = TextSecondary)
                 }
             },
             containerColor = CyberCardBg,
@@ -2081,9 +3158,12 @@ fun DirectMessageScreen(
                         listOf("👍", "❤️", "🔥", "⚡", "🛡️").forEach { emoji ->
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(48.dp)
                                     .clip(CircleShape)
-                                    .background(CyberCardBg)
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = "Mesaja $emoji tepkisi ver"
+                                    }
                                     .clickable {
                                         SoundPoolManager.playMechanicalClick()
                                         val mIdx = messages.indexOfFirst { it.id == target.id }
@@ -2096,7 +3176,15 @@ fun DirectMessageScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = emoji, fontSize = 18.sp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(CyberCardBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = emoji, fontSize = 18.sp)
+                                }
                             }
                         }
                     }
@@ -2198,16 +3286,22 @@ fun DirectMessageScreen(
                         }
                     }
 
-                    // Option 6: Delete for everyone
-                    if (!target.isDeletedForEveryone) {
+                    // Option 6: Delete for everyone (only original sender allowed by zero-trust cloud rules)
+                    if (target.isMe && !target.isDeletedForEveryone) {
                         Card(
                             onClick = {
                                 val idx = messages.indexOfFirst { it.id == target.id }
                                 if (idx != -1) {
                                     messages[idx] = target.copy(
-                                        text = "[Bu mesaj gönderici tarafından herkesten silindi]",
+                                        text = "🚫 Bu mesaj herkes için silindi.",
                                         isDeletedForEveryone = true
                                     )
+                                }
+                                if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+                                    scope.launch {
+                                        FirestoreChatRepository.create(context)
+                                            .deleteMessageForEveryone(conversation.id, target.id)
+                                    }
                                 }
                                 selectedMessageForAction = null
                                 Toast.makeText(context, "Mesaj herkesten silindi.", Toast.LENGTH_SHORT).show()
@@ -2262,6 +3356,12 @@ fun DirectMessageScreen(
                             val idx = messages.indexOfFirst { it.id == target.id }
                             if (idx != -1) {
                                 messages[idx] = target.copy(text = clean, isEdited = true)
+                            }
+                            if (!isGeminiConv && !isSelfNotesConv && currentUserUid != null) {
+                                scope.launch {
+                                    FirestoreChatRepository.create(context)
+                                        .editMessageText(conversation.id, target.id, clean)
+                                }
                             }
                             messageToEdit = null
                             Toast.makeText(context, "Mesaj güncellendi.", Toast.LENGTH_SHORT).show()
@@ -2526,7 +3626,28 @@ fun DirectMessageScreen(
             },
             isBlocked = isContactBlocked,
             onToggleBlock = { blocked ->
-                isContactBlocked = blocked
+                val targetUid = peerCloudUid
+                if (targetUid != null && currentUserUid != null) {
+                    scope.launch {
+                        val repo = FirestoreChatRepository.create(context)
+                        val res = if (blocked) {
+                            repo.blockUser(targetUid, customContactName, conversation.username.orEmpty())
+                        } else {
+                            repo.unblockUser(targetUid)
+                        }
+                        res.onSuccess {
+                            isContactBlocked = blocked
+                        }.onFailure { err ->
+                            Toast.makeText(
+                                context,
+                                err.localizedMessage ?: "Engelleme durumu bulutta güncellenemedi.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                } else {
+                    isContactBlocked = blocked
+                }
             },
             isMuted = isContactMuted,
             onToggleMute = { muted ->
@@ -2542,8 +3663,122 @@ fun DirectMessageScreen(
                 showContactProfileDialog = false
                 Toast.makeText(context, "Sohbet geçmişi temizlendi.", Toast.LENGTH_SHORT).show()
             },
+            onReportUser = { reason, onComplete ->
+                val targetUid = peerCloudUid
+                if (targetUid == null || currentUserUid == null) {
+                    onComplete(Result.failure(IllegalStateException("Bulut şikayet kaydı için Google oturumu ve bulut kullanıcısı gereklidir.")))
+                } else {
+                    scope.launch {
+                        val res = FirestoreChatRepository.create(context).reportUser(
+                            targetUid = targetUid,
+                            targetName = customContactName,
+                            conversationId = conversation.id,
+                            reason = reason
+                        )
+                        onComplete(res)
+                    }
+                }
+            },
             onDismiss = { showContactProfileDialog = false },
             isPaper = isPaper
+        )
+    }
+
+    // E2EE Security Certificate & Zero-Knowledge Verification Dialog
+    if (showE2eeDetailsDialog) {
+        val e2eeActiveNow = isDirectPeerChat && !peerE2eePubKey.isNullOrBlank()
+        val myFp = com.example.util.E2eeCryptoManager.getKeyFingerprint(myE2eePubKey)
+        val peerFp = peerE2eePubKey?.let { com.example.util.E2eeCryptoManager.getKeyFingerprint(it) }
+        AlertDialog(
+            onDismissRequest = { showE2eeDetailsDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.VerifiedUser,
+                    contentDescription = "Uçtan uca şifreleme güvenlik etiketi",
+                    tint = if (e2eeActiveNow) NeonGreen else CyberYellow,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = if (isSelfNotesConv) "Cihaz İçi Güvenlik Kasası" else "Uçtan Uca Şifreleme (E2EE)",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.testTag("dm_e2ee_details_dialog")
+                ) {
+                    Text(
+                        text = when {
+                            isSelfNotesConv ->
+                                "Kişisel 'Siz' notlarınız hiçbir zaman bulut sunucusuna gönderilmez; yalnızca cihazınızın korumalı özel depolama alanında tutulur."
+                            e2eeActiveNow ->
+                                "Bu bire bir sohbette mesajlar cihazınızdan çıkmadan ECDH P-256 + AES-256-GCM ile şifrelenir. Sunucuda yalnızca şifreli (E2EE:v1:...) metin saklanır; sunucu yöneticileri veya 3. taraflar mesaj içeriğini okuyamaz."
+                            else ->
+                                "Cihazınızın E2EE ortak anahtarı hazırlandı. Karşı taraf GENeral Chat'te oturum açıp anahtarını yayınladığında mesajlar otomatik olarak uçtan uca şifrelenir; bu sırada iletişim TLS ile korunur."
+                        },
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CyberBlack),
+                        border = BorderStroke(1.dp, if (e2eeActiveNow) NeonGreen.copy(alpha = 0.6f) else CyberCardBorder),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = when {
+                                    isSelfNotesConv -> "Depolama: Yalnızca Cihaz İçi Özel Alan (Buluta Yüklenmez)"
+                                    e2eeActiveNow -> "Şifreleme Standardı: ECDH secp256r1 + AES-256-GCM"
+                                    else -> "Şifreleme Standardı: ECDH P-256 Hazır + TLS Aktarım"
+                                },
+                                color = NeonCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = when {
+                                    isSelfNotesConv -> "Sunucu Saklama: Buluta Gönderilmez (Yerel)"
+                                    e2eeActiveNow -> "Sunucu Saklama: Şifreli / Okunamaz (E2EE:v1 · Zero-Knowledge)"
+                                    isDirectPeerChat -> "Sunucu Saklama: Karşı taraf anahtarını yayınladığında E2EE:v1 aktif olur"
+                                    else -> "Sunucu Saklama: Grup sohbetleri TLS ile korunur"
+                                },
+                                color = if (e2eeActiveNow || isSelfNotesConv) NeonGreen else CyberYellow,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (!isSelfNotesConv) {
+                                Text("Sizin Anahtar Parmak İziniz: $myFp", color = CyberYellow, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                            if (!isSelfNotesConv && isDirectPeerChat) {
+                                Text(
+                                    text = "Karşı Taraf Anahtar İzi: ${peerFp ?: "Bekleniyor"}",
+                                    color = if (peerFp != null) NeonGreen else TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showE2eeDetailsDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberYellow)
+                ) {
+                    Text("Anlaşıldı", color = CyberBlack, fontWeight = FontWeight.Black)
+                }
+            },
+            containerColor = CyberCardBg,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -2555,6 +3790,118 @@ fun DirectMessageScreen(
             onDismiss = { showExportChatDialog = false },
             isPaper = isPaper
         )
+    }
+
+    // Full-screen 4K High-Resolution Image Viewer + Gallery Saver
+    fullScreenImageMsg?.let { imgMsg ->
+        val imgRawUrl = imgMsg.attachmentUrl ?: imgMsg.attachmentUri
+        val imgSenderUid = imgMsg.senderId ?: if (imgMsg.isMe) currentUserUid else peerCloudUid
+        var resolvedViewerFile by remember(imgMsg.id, imgRawUrl) { mutableStateOf<File?>(null) }
+        var isSavingViewer by remember { mutableStateOf(false) }
+
+        LaunchedEffect(imgMsg.id, imgRawUrl) {
+            resolvedViewerFile = UnlimitedFileTransferManager.ensureLocalFileAvailable(
+                context = context,
+                conversationId = imgMsg.conversationId,
+                messageId = imgMsg.id,
+                attachmentName = imgMsg.attachmentName ?: "gorsel_${imgMsg.id}.jpg",
+                attachmentUrl = imgRawUrl,
+                transferMode = imgMsg.transferMode,
+                senderUid = imgSenderUid,
+                expectedSizeBytes = imgMsg.attachmentSizeBytes
+            ).getOrNull()
+        }
+
+        Dialog(
+            onDismissRequest = { fullScreenImageMsg = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.96f))
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(resolvedViewerFile ?: imgRawUrl)
+                        .size(coil.size.Size.ORIGINAL)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = imgMsg.attachmentName ?: "4K Fotoğraf Önizleme",
+                    contentScale = ContentScale.Fit,
+                    filterQuality = FilterQuality.High,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 56.dp, horizontal = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .background(Color.Black.copy(alpha = 0.72f))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = imgMsg.attachmentName ?: "Fotoğraf",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${imgMsg.senderName} · ${imgMsg.time}",
+                            color = TextSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                    IconButton(onClick = { fullScreenImageMsg = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = Color.White)
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (!isSavingViewer) {
+                            isSavingViewer = true
+                            scope.launch {
+                                val res = MediaGallerySaver.saveMessageImageToGallery(
+                                    context = context,
+                                    message = imgMsg,
+                                    senderUid = imgSenderUid
+                                )
+                                isSavingViewer = false
+                                res.onSuccess {
+                                    SoundPoolManager.playConfirm()
+                                    Toast.makeText(context, "Fotoğraf telefon galerisine kaydedildi!", Toast.LENGTH_LONG).show()
+                                }.onFailure { err ->
+                                    Toast.makeText(context, "Galeriye kaydedilemedi: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .testTag("fullscreen_save_to_gallery_button")
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isSavingViewer) "Galeriye Kaydediliyor..." else "Galeriye Kaydet",
+                        color = CyberBlack,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -2632,10 +3979,17 @@ private fun TypingIndicatorBubble(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     message: DirectMessage,
+    currentUserUid: String? = null,
+    peerUid: String? = null,
+    isSelfNotes: Boolean = false,
+    liveLocations: Map<String, CloudLiveLocation> = emptyMap(),
+    onOpenFullScreenImage: (DirectMessage) -> Unit = {},
     palette: ChatThemePalette,
+    isLightChatSurface: Boolean = false,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onToggleSelect: () -> Unit = {},
@@ -2643,6 +3997,7 @@ private fun MessageBubble(
     onReaction: (String) -> Unit = {},
     onTranscribe: () -> Unit = {},
     onMessageClick: () -> Unit,
+    onMessageLongClick: () -> Unit = {},
     isSearchMatch: Boolean = false,
     isCurrentActiveMatch: Boolean = false,
     highlightQuery: String = ""
@@ -2675,26 +4030,43 @@ private fun MessageBubble(
 
     val isPaper = LocalPaperMode.current
     val bubbleShape = if (isMe) {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
+        RoundedCornerShape(topStart = 14.dp, topEnd = 4.dp, bottomStart = 14.dp, bottomEnd = 14.dp)
     } else {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp)
+        RoundedCornerShape(topStart = 4.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 14.dp)
     }
 
     val bubbleBg = if (isMe) {
-        if (isPaper) Color(0xFFE2DDD5) else palette.myBubbleBg
+        if (isPaper) Color(0xFFE2DDD5)
+        else if (isLightChatSurface) Color(0xFFFFF3C7)
+        else palette.myBubbleBg
     } else {
-        if (isPaper) PaperSurface else palette.otherBubbleBg
+        if (isPaper) PaperSurface
+        else if (isLightChatSurface) PaperSurface
+        else palette.otherBubbleBg
     }
+    val bubbleTextColor = if (isPaper) {
+        if (message.isDeletedForEveryone) PaperTextMuted else PaperText
+    } else if (isLightChatSurface) {
+        if (message.isDeletedForEveryone) PaperTextMuted else PaperText
+    } else if (isMe) {
+        if (message.isDeletedForEveryone) palette.myBubbleText.copy(alpha = 0.6f) else palette.myBubbleText
+    } else {
+        if (message.isDeletedForEveryone) TextSecondary else palette.otherBubbleText
+    }
+    val bubbleMetaColor = if (isLightChatSurface) PaperTextMuted else if (isMe) palette.myBubbleText.copy(alpha = 0.72f) else TextSecondary
+
     val bubbleBorder = if (isCurrentActiveMatch) {
         CyberYellow
     } else if (isSearchMatch) {
         NeonCyan
+    } else if (isLightChatSurface) {
+        PaperBorder
     } else if (isMe) {
         if (isPaper) PaperBorder else palette.borderGlow.copy(alpha = 0.8f)
     } else {
-        if (isPaper) PaperBorder else palette.borderGlow.copy(alpha = 0.4f)
+        if (isPaper) PaperBorder else palette.borderGlow.copy(alpha = 0.45f)
     }
-    val bubbleBorderWidth = if (isCurrentActiveMatch) 2.dp else if (isSearchMatch) 1.5.dp else 1.dp
+    val bubbleBorderWidth = if (isCurrentActiveMatch) 2.dp else if (isSearchMatch) 1.5.dp else 0.8.dp
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2720,7 +4092,7 @@ private fun MessageBubble(
         ) {
             Box(
                 modifier = Modifier
-                    .widthIn(max = 290.dp)
+                    .widthIn(max = 295.dp)
                     .clip(bubbleShape)
                     .background(bubbleBg)
                     .border(
@@ -2728,8 +4100,11 @@ private fun MessageBubble(
                         color = bubbleBorder,
                         shape = bubbleShape
                     )
-                    .clickable { onMessageClick() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .combinedClickable(
+                        onClick = onMessageClick,
+                        onLongClick = onMessageLongClick
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column {
                     // Pinned message badge
@@ -2832,17 +4207,22 @@ private fun MessageBubble(
                             text = message.senderName,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = palette.accentColor,
+                            color = if (isLightChatSurface) PaperText else palette.accentColor,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
 
-                    // Attachment Card (Photo, Document, File, APK, Video, Link)
+                    // Attachment Card (Photo, Document, File, APK, Video, Link, Location, Event)
                     if (message.attachmentType != null) {
+                        val resolvedSenderUid = message.senderId
+                            ?: if (message.isMe) currentUserUid else peerUid
                         AttachmentView(
                             message = message,
                             isMe = isMe,
-                            isPaper = isPaper
+                            isPaper = isLightChatSurface,
+                            senderUid = resolvedSenderUid,
+                            liveLocations = liveLocations,
+                            onOpenFullScreenImage = { onOpenFullScreenImage(message) }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
@@ -3029,13 +4409,7 @@ private fun MessageBubble(
                         Text(
                             text = displayAnnotatedText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (isPaper) {
-                                if (message.isDeletedForEveryone) PaperTextMuted else PaperText
-                            } else if (isMe) {
-                                if (message.isDeletedForEveryone) palette.myBubbleText.copy(alpha = 0.6f) else palette.myBubbleText
-                            } else {
-                                if (message.isDeletedForEveryone) TextSecondary else palette.otherBubbleText
-                            },
+                            color = bubbleTextColor,
                             lineHeight = 20.sp,
                             fontStyle = if (message.isDeletedForEveryone) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal
                         )
@@ -3043,32 +4417,135 @@ private fun MessageBubble(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
+                    val isSpeakingAny by com.example.util.GenAiSpeechManager.isSpeaking.collectAsState()
+                    val speakingMsgId by com.example.util.GenAiSpeechManager.speakingMessageId.collectAsState()
+                    val isThisMsgSpeaking = isSpeakingAny && speakingMsgId == message.id
+                    val strings = com.example.util.LocalAppStrings.current
+
                     Row(
-                        modifier = Modifier.align(Alignment.End),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (message.isEdited) {
-                            Text(
-                                text = "düzenlendi · ",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isMe) palette.myBubbleText.copy(alpha = 0.6f) else TextSecondary,
-                                fontSize = 9.sp
-                            )
+                        if (!isMe && !message.isDeletedForEveryone && message.text.isNotBlank()) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isThisMsgSpeaking) NeonRed.copy(alpha = 0.2f) else palette.accentColor.copy(alpha = 0.16f))
+                                    .clickable {
+                                        SoundPoolManager.playMechanicalClick()
+                                        com.example.util.GenAiSpeechManager.speak(context, message.id, message.text)
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (isThisMsgSpeaking) Icons.Default.Stop else Icons.Default.VolumeUp,
+                                    contentDescription = if (isThisMsgSpeaking) strings.aiStopReading else strings.aiReadAloud,
+                                    tint = if (isThisMsgSpeaking) NeonRed else palette.accentColor,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = if (isThisMsgSpeaking) strings.aiStopReading else strings.aiReadAloud,
+                                    color = if (isThisMsgSpeaking) NeonRed else palette.accentColor,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(1.dp))
                         }
-                        Text(
-                            text = message.time,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isMe) palette.myBubbleText.copy(alpha = 0.7f) else TextSecondary,
-                            fontSize = 10.sp
-                        )
-                        if (isMe) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.DoneAll,
-                                contentDescription = "İletildi",
-                                tint = palette.myBubbleText.copy(alpha = 0.8f),
-                                modifier = Modifier.size(13.dp)
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (message.isEdited) {
+                                Text(
+                                    text = "düzenlendi · ",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = bubbleMetaColor,
+                                    fontSize = 9.sp
+                                )
+                            }
+                            val formattedSentTime = remember(message.time, message.timestamp) {
+                                if (message.timestamp > 0L) {
+                                    formatClockTime(message.timestamp)
+                                } else if (message.time.isNotBlank() && message.time != "Şimdi") {
+                                    message.time
+                                } else {
+                                    formatClockTime(System.currentTimeMillis())
+                                }
+                            }
+                            if (message.isEncrypted && !message.isDeletedForEveryone) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Uçtan uca şifreli mesaj",
+                                    tint = if (isLightChatSurface) PaperText else if (isMe) bubbleMetaColor else NeonGreen,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                            }
+                            Text(
+                                text = formattedSentTime,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = bubbleMetaColor,
+                                fontSize = 10.sp
                             )
+                            if (isMe && !message.isDeletedForEveryone) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                if (isSelfNotes) {
+                                    Text(
+                                        text = "Cihaz içi",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = bubbleMetaColor,
+                                        fontSize = 9.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Cihaz içinde saklanır",
+                                        tint = bubbleMetaColor,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                } else {
+                                    val isReadByOther = message.readBy.any { it != currentUserUid } || message.readAtMs != null
+                                    val isDelivered = message.deliveredAtMs != null || message.timestamp > 0L
+                                    if (isReadByOther) {
+                                        val readColor = if (isLightChatSurface) PaperText else NeonCyan
+                                        Icon(
+                                            imageVector = Icons.Default.DoneAll,
+                                            contentDescription = "Okundu",
+                                            tint = readColor,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        message.readAtMs?.let { rAt ->
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = "${formatClockTime(rAt)} okundu",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = readColor,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    } else if (isDelivered) {
+                                        Icon(
+                                            imageVector = Icons.Default.DoneAll,
+                                            contentDescription = "İletildi",
+                                            tint = bubbleMetaColor,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Gönderildi",
+                                            tint = bubbleMetaColor,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -3107,11 +4584,104 @@ private fun MessageBubble(
 private fun AttachmentView(
     message: DirectMessage,
     isMe: Boolean,
-    isPaper: Boolean
+    isPaper: Boolean,
+    senderUid: String?,
+    liveLocations: Map<String, CloudLiveLocation> = emptyMap(),
+    onOpenFullScreenImage: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val progressMap by UnlimitedFileTransferManager.transferProgress.collectAsState()
+    val transferProgress = progressMap[message.id]
     val attType = message.attachmentType?.uppercase() ?: return
     val attName = message.attachmentName ?: "veri_dosyasi"
+    val modeLabel = remember(message.transferMode) {
+        when (message.transferMode) {
+            "P2P_WEBRTC" -> "WebRTC P2P"
+            "LAN_HTTP" -> "LAN HTTP"
+            "CLOUD_CHUNKS" -> "Bulut"
+            else -> null
+        }
+    }
+    val sizeLabel = remember(message.attachmentSizeBytes, modeLabel) {
+        val base = if (message.attachmentSizeBytes > 0L) formatByteSize(message.attachmentSizeBytes) else "Yüksek boyut"
+        if (modeLabel != null) "$base · $modeLabel" else base
+    }
+
+    var showExecutableRiskDialog by remember { mutableStateOf(false) }
+
+    fun performOpenAttachment() {
+        scope.launch {
+            val res = UnlimitedFileTransferManager.ensureLocalFileAvailable(
+                context = context,
+                conversationId = message.conversationId,
+                messageId = message.id,
+                attachmentName = attName,
+                attachmentUrl = message.attachmentUrl ?: message.attachmentUri,
+                transferMode = message.transferMode,
+                senderUid = senderUid,
+                expectedSizeBytes = message.attachmentSizeBytes
+            )
+            res.onSuccess { localFile ->
+                try {
+                    UnlimitedFileTransferManager.openFileWithSystem(context, localFile, message.attachmentMimeType)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Dosya indirildi (${localFile.name}) ancak açacak uygulama bulunamadı.", Toast.LENGTH_LONG).show()
+                }
+            }.onFailure { err ->
+                Toast.makeText(context, "Dosya açılamadı: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    fun openAttachment() {
+        val lowerName = attName.lowercase()
+        val isExecutable = attType == "APK" ||
+            listOf(".apk", ".dex", ".jar", ".sh", ".bat", ".exe").any { lowerName.endsWith(it) }
+        if (isExecutable) {
+            showExecutableRiskDialog = true
+        } else {
+            performOpenAttachment()
+        }
+    }
+
+    if (showExecutableRiskDialog) {
+        AlertDialog(
+            onDismissRequest = { showExecutableRiskDialog = false },
+            title = {
+                Text(
+                    text = "Güvenlik Uyarısı: Çalıştırılabilir Paket",
+                    color = NeonRed,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "'$attName' çalıştırılabilir bir uygulama paketi (.apk/.jar/.exe) olabilir. Bilinmeyen kaynaklardan gelen paketler cihaz güvenliği açısından risk taşır. Devam etmek istiyor musunuz?",
+                    color = if (isPaper) PaperText else Color.White,
+                    fontSize = 12.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExecutableRiskDialog = false
+                        performOpenAttachment()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonRed)
+                ) {
+                    Text("Riski Biliyorum, Aç", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExecutableRiskDialog = false }) {
+                    Text("İptal", color = if (isPaper) PaperTextMuted else TextSecondary)
+                }
+            },
+            containerColor = if (isPaper) PaperSurface else CyberCardBg
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -3133,6 +4703,21 @@ private fun AttachmentView(
         )
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
+            if (transferProgress != null && transferProgress in 0f..0.999f) {
+                Text(
+                    text = "Aktarılıyor: %${(transferProgress * 100).toInt()} (${modeLabel ?: "Akış"})",
+                    color = NeonCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                LinearProgressIndicator(
+                    progress = { transferProgress },
+                    color = NeonCyan,
+                    trackColor = CyberCardBorder,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                )
+            }
             when (attType) {
                 "APK" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -3156,7 +4741,7 @@ private fun AttachmentView(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Android Uygulama Paketi · 28.4 MB · v7.7.3",
+                                text = "Android Uygulama Paketi · $sizeLabel",
                                 color = NeonGreen,
                                 fontSize = 10.sp
                             )
@@ -3164,53 +4749,130 @@ private fun AttachmentView(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = {
-                            Toast.makeText(context, "APK Doğrulandı (SHA-256). Paket kuruluma hazır.", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { openAttachment() },
                         colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
-                        modifier = Modifier.fillMaxWidth().height(32.dp),
+                        modifier = Modifier.fillMaxWidth().height(34.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("[ GÜVENLİ KUR / YÜKLE ]", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        Text("Paketi İndir / Aç", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Black)
                     }
                 }
                 "IMAGE" -> {
+                    val url = message.attachmentUrl ?: message.attachmentUri
+                    var resolvedPreviewFile by remember(message.id, url) {
+                        mutableStateOf(
+                            url?.takeIf { !it.startsWith("http") && !it.startsWith("content://") }
+                                ?.let { File(it) }
+                                ?.takeIf { it.exists() }
+                        )
+                    }
+                    var isSavingGallery by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(message.id, url) {
+                        if (resolvedPreviewFile == null && message.attachmentSizeBytes <= 25L * 1024L * 1024L) {
+                            resolvedPreviewFile = UnlimitedFileTransferManager.ensureLocalFileAvailable(
+                                context = context,
+                                conversationId = message.conversationId,
+                                messageId = message.id,
+                                attachmentName = attName,
+                                attachmentUrl = url,
+                                transferMode = message.transferMode,
+                                senderUid = senderUid,
+                                expectedSizeBytes = message.attachmentSizeBytes
+                            ).getOrNull()
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(110.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFF0F172A)),
+                            .height(170.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF0F172A))
+                            .clickable { onOpenFullScreenImage() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Image, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(36.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "📷 E2EE Şifreli Görsel Önizleme",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                        if (resolvedPreviewFile != null || !url.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(resolvedPreviewFile ?: url)
+                                    .size(coil.size.Size.ORIGINAL)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = attName,
+                                contentScale = ContentScale.Crop,
+                                filterQuality = FilterQuality.High,
+                                modifier = Modifier.fillMaxSize()
                             )
-                            Text(
-                                text = attName,
-                                color = TextSecondary,
-                                fontSize = 9.sp
-                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.Image, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(36.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "📷 Görsel ($sizeLabel)",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = attName,
+                                    color = TextSecondary,
+                                    fontSize = 9.sp
+                                )
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    Button(
-                        onClick = {
-                            Toast.makeText(context, "Görsel tam çözünürlükte açılıyor...", Toast.LENGTH_SHORT).show()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isPaper) PaperBorder else CyberCardBorder),
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("Tam Ekran Görüntüle", color = if (isPaper) PaperText else Color.White, fontSize = 11.sp)
+                        Button(
+                            onClick = { onOpenFullScreenImage() },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isPaper) PaperBorder else CyberCardBorder),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("🔍 Tam Ekran", color = if (isPaper) PaperText else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                if (!isSavingGallery) {
+                                    isSavingGallery = true
+                                    scope.launch {
+                                        val res = MediaGallerySaver.saveMessageImageToGallery(
+                                            context = context,
+                                            message = message,
+                                            senderUid = senderUid
+                                        )
+                                        isSavingGallery = false
+                                        res.onSuccess {
+                                            SoundPoolManager.playConfirm()
+                                            Toast.makeText(context, "Fotoğraf galeriye kaydedildi!", Toast.LENGTH_SHORT).show()
+                                        }.onFailure { err ->
+                                            Toast.makeText(context, "Kaydedilemedi: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .testTag("save_photo_gallery_${message.id}"),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isSavingGallery) "Kaydediliyor" else "Galeriye Kaydet",
+                                color = CyberBlack,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
                 }
                 "VIDEO" -> {
@@ -3234,7 +4896,7 @@ private fun AttachmentView(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "🎥 Şifreli Video Akışı (01:24)",
+                                text = "🎥 Video Akışı · $sizeLabel",
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -3248,14 +4910,12 @@ private fun AttachmentView(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
-                        onClick = {
-                            Toast.makeText(context, "Şifreli video akışı başlatıldı.", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { openAttachment() },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF43F5E)),
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        modifier = Modifier.fillMaxWidth().height(32.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text("Videoyu Oynat", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Videoyu İndir / Oynat", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 "DOCUMENT" -> {
@@ -3271,16 +4931,14 @@ private fun AttachmentView(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text("Şifreli Doküman (PDF) · 1.8 MB", color = TextSecondary, fontSize = 10.sp)
+                            Text("Şifreli Doküman · $sizeLabel", color = TextSecondary, fontSize = 10.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
-                        onClick = {
-                            Toast.makeText(context, "Belge güvenli okuyucuda açıldı.", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { openAttachment() },
                         colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        modifier = Modifier.fillMaxWidth().height(32.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text("Belgeyi Aç", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -3318,12 +4976,166 @@ private fun AttachmentView(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        modifier = Modifier.fillMaxWidth().height(32.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Icon(Icons.Default.OpenInNew, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Bağlantıyı Aç ↗", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                "LIVE_LOCATION", "LOCATION" -> {
+                    val isLiveType = attType == "LIVE_LOCATION"
+                    val rawPayload = message.attachmentUrl.orEmpty()
+                    val payloadParts = if (isLiveType) rawPayload.split("|") else emptyList()
+                    val locId = payloadParts.getOrNull(0).orEmpty()
+                    val liveSession = if (isLiveType && locId.isNotBlank()) liveLocations[locId] else null
+
+                    val fallbackCoords = payloadParts.getOrNull(1)?.split(",")
+                    val displayLat = liveSession?.latitude ?: fallbackCoords?.getOrNull(0)?.toDoubleOrNull()
+                    val displayLng = liveSession?.longitude ?: fallbackCoords?.getOrNull(1)?.toDoubleOrNull()
+                    val isSessionActive = isLiveType && liveSession?.isActive == true &&
+                        (liveSession.expiresAtMs == 0L || liveSession.expiresAtMs > System.currentTimeMillis())
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSessionActive) NeonGreen.copy(alpha = 0.25f) else CyberYellow.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = if (isSessionActive) NeonGreen else CyberYellow,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = when {
+                                    isSessionActive -> "● CANLI KONUM AKTİF"
+                                    isLiveType -> "📍 Canlı Konum (Durduruldu)"
+                                    else -> "📍 Paylaşılan Konum"
+                                },
+                                color = if (isPaper) PaperText else if (isSessionActive) NeonGreen else CyberYellow,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = liveSession?.label ?: attName,
+                                color = if (isPaper) PaperText else Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (displayLat != null && displayLng != null) {
+                                val accSuffix = liveSession?.accuracyMeters?.takeIf { it > 0.0 }?.let { " · ±${it.toInt()}m" }.orEmpty()
+                                Text(
+                                    text = "${String.format(Locale.US, "%.5f", displayLat)}, ${String.format(Locale.US, "%.5f", displayLng)}$accSuffix",
+                                    color = if (isPaper) PaperTextMuted else NeonCyan,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                try {
+                                    if (displayLat != null && displayLng != null) {
+                                        LiveLocationManager.openInMaps(context, displayLat, displayLng, liveSession?.label ?: attName)
+                                    } else {
+                                        val geo = rawPayload.ifBlank { "geo:0,0?q=${Uri.encode(attName)}" }
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geo)))
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Harita uygulaması bulunamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberYellow),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, tint = CyberBlack, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Haritada Aç ↗", color = CyberBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        if (isMe && isSessionActive && locId.isNotBlank()) {
+                            Button(
+                                onClick = {
+                                    LiveLocationManager.stopLiveLocationSession(
+                                        context = context,
+                                        conversationId = message.conversationId,
+                                        locationId = locId,
+                                        syncStopToCloud = true
+                                    )
+                                    Toast.makeText(context, "Canlı konum paylaşımı durduruldu.", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = NeonRed),
+                                modifier = Modifier.weight(1f).height(34.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Icon(Icons.Default.Stop, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Durdur", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                "EVENT" -> {
+                    val parts = (message.attachmentUrl ?: "").split("|")
+                    val datePart = parts.getOrNull(0).orEmpty()
+                    val timePart = parts.getOrNull(1).orEmpty()
+                    val placePart = parts.getOrNull(2).orEmpty()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(NeonCyan.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Event, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "📅 Etkinlik Planı",
+                                color = if (isPaper) Color(0xFF0284C7) else NeonCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = attName,
+                                color = if (isPaper) PaperText else Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "🗓️ $datePart · ⏰ $timePart",
+                        color = if (isPaper) PaperText else CyberYellow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (placePart.isNotBlank()) {
+                        Text(
+                            text = "📌 $placePart",
+                            color = if (isPaper) PaperTextMuted else TextSecondary,
+                            fontSize = 11.sp
+                        )
                     }
                 }
                 else -> { // FILE / default
@@ -3339,19 +5151,17 @@ private fun AttachmentView(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text("Şifreli Veri Bloğu · 4.6 MB", color = TextSecondary, fontSize = 10.sp)
+                            Text("Şifreli Veri Dosyası · $sizeLabel", color = TextSecondary, fontSize = 10.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
-                        onClick = {
-                            Toast.makeText(context, "Dosya deşifre edildi ve yerel depolamaya aktarıldı.", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { openAttachment() },
                         colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        modifier = Modifier.fillMaxWidth().height(32.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text("Deşifre Et ve Aç", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("İndir ve Aç", color = CyberBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

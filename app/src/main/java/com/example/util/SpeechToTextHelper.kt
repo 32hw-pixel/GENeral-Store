@@ -179,6 +179,7 @@ fun rememberSpeechToTextLauncher(
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
                         putExtra(RecognizerIntent.EXTRA_PROMPT, "Mesajınızı konuşun...")
                     }
+                    com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
                     intentLauncher.launch(intent)
                 } catch (e: Exception) {
                     Toast.makeText(context, "Cihazda ses tanıma servisi bulunamadı.", Toast.LENGTH_SHORT).show()

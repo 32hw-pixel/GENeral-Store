@@ -16,21 +16,21 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 enum class SoundProfile(val displayName: String) {
-    ASPHALT_CYBER("Asphalt Legends Unite (Arcade Tok & Blip)"),
+    CYBER_PULSE("Siber Nabız (Modern Tok & Blip)"),
     MECHANICAL_THOCK("Mekanik Tok Klavye (Thock Switch)"),
     CRYSTAL_NEON("Kristal Siber Bip (Minimalist)")
 }
 
 enum class KeyboardSoundProfile(val displayName: String, val subtitle: String) {
     THOCK("Mekanik Tok (Thock Switch)", "62g ağırlıklı tok mekanik anahtar sesi"),
-    ASPHALT("Asphalt Legends Blip", "Asphalt Unite tarzı fütüristik UI sesi"),
+    ELECTRO_BLIP("Siber Elektro Bip", "Modern fütüristik dokunuş UI sesi"),
     NEON_LASER("Siber Kristal Lazer", "Hızlı neon lazer dokunuş tınısı"),
     TYPEWRITER("Vintage Daktilo Tok", "Klasik mekanik daktilo vuruşu")
 }
 
 enum class NotificationSoundProfile(val displayName: String, val subtitle: String) {
     CYBER_UPLINK("Siber Uplink (Matrix Sync)", "Siber uzay veri tüneli bağlantı melodisi"),
-    ASPHALT_FINISH("Asphalt Nitro Finish", "Arcade yarış bitiş zafer çanı"),
+    VICTORY_CHIME("Siber Zafer Çanı", "Net ve enerjik bildirim çanı"),
     QUANTUM_PULSE("Kuantum Nabız (Sub-Bass)", "Derin sub-bass yankılanan uyarı tonu"),
     RADAR_PING("Sonar Radar Ping", "Taktiksel denizaltı sonar yankısı")
 }
@@ -46,7 +46,7 @@ object SoundPoolManager {
     private var isMuted: Boolean = false
     private var isInitialized = false
 
-    private var currentProfile: SoundProfile = SoundProfile.ASPHALT_CYBER
+    private var currentProfile: SoundProfile = SoundProfile.CYBER_PULSE
     private var currentKeyboardProfile: KeyboardSoundProfile = KeyboardSoundProfile.THOCK
     private var currentNotificationProfile: NotificationSoundProfile = NotificationSoundProfile.CYBER_UPLINK
 
@@ -61,7 +61,7 @@ object SoundPoolManager {
     // Pre-computed in-memory PCM buffers for instant AudioTrack fallback (100% fail-safe)
     private val pcmMechanicalTok: ShortArray by lazy { generateMechanicalTok() }
     private val pcmScrollTick: ShortArray by lazy { generateScrollTick() }
-    private val pcmMenuBlip: ShortArray by lazy { generateAsphaltMenuBlip() }
+    private val pcmMenuBlip: ShortArray by lazy { generateCyberMenuBlip() }
     private val pcmWhoosh: ShortArray by lazy { generateWhooshSweep() }
     private val pcmConfirm: ShortArray by lazy { generateRewardChime() }
     private val pcmPanicWipe: ShortArray by lazy { generatePanicWipe() }
@@ -139,7 +139,7 @@ object SoundPoolManager {
         view?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         when (currentKeyboardProfile) {
             KeyboardSoundProfile.THOCK -> playMechanicalClick(view)
-            KeyboardSoundProfile.ASPHALT -> playMenuNav(view)
+            KeyboardSoundProfile.ELECTRO_BLIP -> playMenuNav(view)
             KeyboardSoundProfile.NEON_LASER -> playDirectPcm(pcmNeonLaser)
             KeyboardSoundProfile.TYPEWRITER -> playDirectPcm(pcmTypewriter)
         }
@@ -153,7 +153,7 @@ object SoundPoolManager {
         view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         when (currentNotificationProfile) {
             NotificationSoundProfile.CYBER_UPLINK -> playConfirm(view)
-            NotificationSoundProfile.ASPHALT_FINISH -> playDirectPcm(pcmMenuBlip)
+            NotificationSoundProfile.VICTORY_CHIME -> playDirectPcm(pcmMenuBlip)
             NotificationSoundProfile.QUANTUM_PULSE -> playDirectPcm(pcmQuantumPulse)
             NotificationSoundProfile.RADAR_PING -> playDirectPcm(pcmRadarPing)
         }
@@ -163,7 +163,7 @@ object SoundPoolManager {
         view?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         when (profile) {
             KeyboardSoundProfile.THOCK -> playMechanicalClick(view)
-            KeyboardSoundProfile.ASPHALT -> playMenuNav(view)
+            KeyboardSoundProfile.ELECTRO_BLIP -> playMenuNav(view)
             KeyboardSoundProfile.NEON_LASER -> playDirectPcm(pcmNeonLaser)
             KeyboardSoundProfile.TYPEWRITER -> playDirectPcm(pcmTypewriter)
         }
@@ -173,7 +173,7 @@ object SoundPoolManager {
         view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         when (profile) {
             NotificationSoundProfile.CYBER_UPLINK -> playConfirm(view)
-            NotificationSoundProfile.ASPHALT_FINISH -> playDirectPcm(pcmMenuBlip)
+            NotificationSoundProfile.VICTORY_CHIME -> playDirectPcm(pcmMenuBlip)
             NotificationSoundProfile.QUANTUM_PULSE -> playDirectPcm(pcmQuantumPulse)
             NotificationSoundProfile.RADAR_PING -> playDirectPcm(pcmRadarPing)
         }
@@ -210,7 +210,7 @@ object SoundPoolManager {
     }
 
     /**
-     * Punchy downward arcade chirp matching Asphalt 9 / Asphalt Legends Unite UI buttons.
+     * Punchy downward cyber UI chirp for modern tactical buttons.
      */
     fun playMenuNav(view: View? = null) {
         if (isMuted) return
@@ -369,10 +369,10 @@ object SoundPoolManager {
     }
 
     /**
-     * Asphalt Legends Unite UI Blip:
+     * Cyber UI Blip:
      * Fast downward futuristic frequency sweep from 1700Hz to 850Hz with 3200Hz harmonic ping.
      */
-    private fun generateAsphaltMenuBlip(): ShortArray {
+    private fun generateCyberMenuBlip(): ShortArray {
         val sampleRate = 44100
         val durationMs = 45
         val numSamples = (durationMs * sampleRate) / 1000

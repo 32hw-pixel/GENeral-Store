@@ -63,6 +63,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -107,20 +111,20 @@ data class ShowcaseScene(
 
 val showcaseScenes = listOf(
     ShowcaseScene(
-        title = "Uçtan Uca Şifreli Mesajlaşma (E2EE)",
+        title = "TLS & DTLS-SRTP Korumalı Mesajlaşma",
         subtitle = "Sarı-Siyah Siberpunk İletişim Ağı",
         category = "MESAJLAŞMA & ARAMALAR",
         icon = Icons.Default.Chat,
-        description = "Kişisel ve grup sohbetlerinde SHA-256 ve AES-256 şifreleme devrededir. WebRTC ile yüksek kaliteli, şifreli sesli ve görüntülü görüşmeler yapabilirsiniz.",
-        highlightBadge = "E2EE AKTİF"
+        description = "Kişisel ve grup sohbetlerinde bulut TLS aktarımı, WebRTC görüşmelerinde ise DTLS-SRTP medya koruması devrededir. Sesli ve görüntülü görüşmeler yapabilirsiniz.",
+        highlightBadge = "TLS & DTLS-SRTP"
     ),
     ShowcaseScene(
         title = "GEN AI Operasyon Merkezi",
-        subtitle = "Gemini 3.8 Flash Derin Zekâ Altyapısı",
+        subtitle = "GEN AI Pro Akıllı Muhakeme Altyapısı",
         category = "YAPAY ZEKÂ",
         icon = Icons.Default.SmartToy,
-        description = "Akıllı otomatik, kodlama, matematik, çeviri ve içerik fikirleri modlarıyla sorularınızı yanıtlar. 40 turluk bağlam hafızası ve 24.576 token bütçesiyle yanınızda.",
-        highlightBadge = "GEMINI 3.8 FLASH"
+        description = "Kod yazma, hata ayıklama, matematik, çeviri, sohbet özetleme ve sesli okuma modlarıyla yanınızda. 40 turluk bağlam hafızasıyla kesintisiz destek sağlar.",
+        highlightBadge = "GEN AI PRO"
     ),
     ShowcaseScene(
         title = "10 Gizlilik Maskesi & Kamuflaj",
@@ -135,8 +139,8 @@ val showcaseScenes = listOf(
         subtitle = "E-Ink Mat Mürekkep Rahatlığı",
         category = "GÖRÜNÜM & ERGONOMİ",
         icon = Icons.Default.MenuBook,
-        description = "Gecenin köründe bile gözlerin yorulmasın. Dijital ışığı kesen mat mikro-kapsül moduyla saf kitap okuma konforu ve gizlilik sunar.",
-        highlightBadge = "E-INK PAPER"
+        description = "Gözlerinizin yorulmaması için tasarlanmış mat okuma moduyla düşük ışıkta bile rahat mesajlaşma ve okuma deneyimi sunar.",
+        highlightBadge = "KAĞIT MODU"
     ),
     ShowcaseScene(
         title = "Panik Butonu & Acil İmha",
@@ -342,7 +346,7 @@ private fun VideoShowcaseContent(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isPlaying) "CANLI SİBER DEMO // 120 FPS" else "DURAKLATILDI",
+                            text = if (isPlaying) "CANLI TANITIM AKIŞI" else "DURAKLATILDI",
                             fontFamily = FontFamily.Monospace,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -552,16 +556,26 @@ private fun VideoShowcaseContent(
                     IconButton(
                         onClick = onTogglePlay,
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(CyberYellow)
+                            .size(48.dp)
+                            .semantics {
+                                role = Role.Button
+                                stateDescription = if (isPlaying) "Oynatılıyor" else "Duraklatıldı"
+                            }
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Duraklat" else "Oynat",
-                            tint = CyberBlack,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(CyberYellow),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlaying) "Duraklat" else "Oynat",
+                                tint = CyberBlack,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -668,16 +682,16 @@ private fun WrittenManualContent() {
 
         ManualSection(
             title = "1. Mesajlaşma ve Güvenli İletişim",
-            content = "• 'Sohbetler' sekmesinden Ahmet Yılmaz, Zeynep Kaya veya grup kanallarına erişebilirsiniz.\n" +
-                    "• Her mesaj SHA-256 ve AES uçtan uca şifrelemeyle (E2EE) korunur. Mesajlar yerel veritabanında güvenle saklanır.\n" +
-                    "• Sağ üstteki '+' butonuna dokunarak dilediğiniz kişiyle anında yeni şifreli sohbet başlatabilirsiniz."
+            content = "• 'Sohbetler' sekmesinden GEN AI asistanına veya kendi eklediğiniz gerçek kişi ve grup kanallarına erişebilirsiniz.\n" +
+                    "• Mesajlarınız, dosyalarınız, konum ve etkinlik planlarınız TLS aktarım ve hesap bazlı güvenlik kurallarıyla korunur.\n" +
+                    "• Sağ üstteki '+' butonuna dokunarak dilediğiniz kişiyle anında yeni sohbet başlatabilirsiniz."
         )
 
         ManualSection(
-            title = "2. GEN AI (Gemini 3.8 Flash Operasyon Merkezi)",
-            content = "• Alt navigasyondaki 'GEN AI' sekmesinden Gemini 3.8 Flash zekâsına anında soru sorabilirsiniz.\n" +
+            title = "2. GEN AI (Akıllı Asistan ve Kodlama Merkezi)",
+            content = "• Alt navigasyondaki 'GEN AI' sekmesinden GEN AI asistanına anında soru sorabilir, tam çalışan kodlar ürettirebilirsiniz.\n" +
                     "• 'Yanıt tarzı' seçicisinden Akıllı otomatik, Kodlama, Matematik, Çeviri, İçerik fikirleri veya Rehber hazırla modlarını seçebilirsiniz.\n" +
-                    "• 40 önceki soru-cevap turunu hatırlar, bağlamı kaybetmeden karmaşık görevlerinizi çözer."
+                    "• Sohbet geçmişini temizleyebilir, JSON/TXT olarak dışa aktarabilir ve yanıtları sesli olarak dinleyebilirsiniz."
         )
 
         ManualSection(

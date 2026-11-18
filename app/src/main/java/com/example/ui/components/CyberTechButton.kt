@@ -53,10 +53,10 @@ import com.example.util.SoundPoolManager
 import kotlinx.coroutines.launch
 
 /**
- * Asphalt Legends Unite inspired Cyber-Tech Button:
+ * High-speed spring-animated Cyber-Tech Button:
  * - High-speed spring bounce scale animation on press (scales to 0.94x with bounce release)
- * - Immediate zero-latency arcade click sound trigger
- * - Glowing cyberpunk border and high-tech bracketed typography
+ * - Immediate zero-latency tactile click sound trigger
+ * - Glowing modern border and bold high-contrast typography
  */
 @Composable
 fun CyberTechButton(
