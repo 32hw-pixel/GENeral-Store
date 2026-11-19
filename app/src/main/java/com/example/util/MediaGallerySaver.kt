@@ -18,7 +18,7 @@ import java.net.URL
 /**
  * Zero-permission MediaStore gallery saver for both sent and received images.
  * Uses Android Scoped Storage (API 29+ RELATIVE_PATH + IS_PENDING) with zero
- * broad storage permissions (compliant with Google Play & Aptoide policies).
+ * broad storage permissions (compliant with Android Scoped Storage & GitHub Releases security practices).
  */
 object MediaGallerySaver {
 

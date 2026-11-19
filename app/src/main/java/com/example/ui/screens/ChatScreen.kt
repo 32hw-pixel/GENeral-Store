@@ -4239,7 +4239,8 @@ private fun AyarlarTabContent(
             buttonLabel = "Paylaş",
             buttonColor = CyberYellow,
             onAction = {
-                val shareText = "GENeral Chat — Sarı-siyah siber güvenlikli mesajlaşma, görüntülü/sesli arama ve GEN AI: https://ais-pre-xilrvyazk3zclcmm36qyhw-278684361749.europe-west2.run.app"
+                com.example.data.SecurityUtils.suppressNextBackgroundLockOnce()
+                val shareText = "GENeral Chat — Uçtan uca şifreli mesajlaşma, WebRTC sesli/görüntülü arama, 4 haneli PIN/İMHA koruması ve GEN AI.\nResmî kanal & GitHub sürümleri: https://youtube.com/@GENeralYTB"
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(android.content.Intent.EXTRA_SUBJECT, "GENeral Chat")

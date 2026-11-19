@@ -16,6 +16,9 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve WebRTC native JNI bindings and Firebase/App data models for release builds
+-keep class org.webrtc.** { *; }
+-dontwarn org.webrtc.**
+-keep class com.example.data.** { *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod
+

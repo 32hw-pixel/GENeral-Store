@@ -15,5 +15,15 @@
 .cxx
 local.properties
 .env
-debug.keystore
+*.jks
+*.keystore
+*.keystore.base64
+*.p12
+*.pem
+*.apk
+*.aab
+*.apks
+.build-outputs/
 *-debug.log
+firebase-debug.log
+firestore-debug.log

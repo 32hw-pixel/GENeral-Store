@@ -209,7 +209,7 @@ fun DataPrivacyScreen(
                 title = {
                     Column {
                         Text(
-                            text = "KVKK 6698 & APTOIDE UYUMLULUK",
+                            text = "KVKK 6698 & GITHUB RELEASES UYUMLULUK",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = CyberYellow,
@@ -365,7 +365,7 @@ fun DataPrivacyScreen(
                             "• Bulut Yedekleme Engeli (allowBackup=false): Özel mesaj kuyruğu, E2EE özel anahtarı, Room veritabanı ve güvenlik tercihleri Google Auto Backup / cihaz aktarımına dahil edilmez.\n" +
                             "• Grup & Eşleşmemiş Sohbet Notu: Grup odaları veya karşı tarafın henüz E2EE ortak anahtarını yayınlamadığı oturumlarda iletişim Google Cloud/TLS koruması altında aktarılır.\n" +
                             "• İhlal Bildirimi (Md. 12/5): Kişisel verilerin kanuni olmayan yollarla başkalarınca elde edilmesi hâlinde durum gecikmeksizin ilgilisine ve Kişisel Verileri Koruma Kuruluna bildirilir.\n" +
-                            "• Aptoide & Mağaza Politika Uyumu: Gizli arka plan veri toplama veya gereksiz depolama izni içermez; tüm hassas izinler (Kamera, Mikrofon, Konum, Bildirim) yalnızca özellik kullanılırken çalışma zamanında sorulur ve galeri seçimi Android Photo Picker ile izinsiz yapılır."
+                            "• GitHub Releases & Açık Dağıtım Uyumu: Gizli arka plan veri toplama, reklam/izleyici SDK veya gereksiz depolama izni içermez; tüm hassas izinler (Kamera, Mikrofon, Konum, Bildirim) yalnızca özellik kullanılırken çalışma zamanında sorulur ve galeri seçimi Android Photo Picker ile izinsiz yapılır."
                     )
                 }
 
